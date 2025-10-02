@@ -14,6 +14,39 @@ router.get('/health', (req, res) => {
   });
 });
 
+// @route   GET /api/lessons/debug
+// @desc    Debug route to see all lessons in database
+// @access  Public
+router.get('/debug', async (req, res) => {
+  try {
+    console.log('=== DEBUG: Getting all lessons ===');
+    const allLessons = await Lesson.find({}).lean();
+    console.log('Total lessons in database:', allLessons.length);
+    
+    const lessonIds = allLessons.map(lesson => ({
+      id: lesson._id,
+      title: lesson.title,
+      ageRange: lesson.ageRange
+    }));
+    
+    res.json({
+      success: true,
+      message: 'Debug info retrieved',
+      data: {
+        totalLessons: allLessons.length,
+        lessons: lessonIds
+      }
+    });
+  } catch (error) {
+    console.error('❌ Debug error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Debug error',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /api/lessons
 // @desc    Get all lessons
 // @access  Public
@@ -78,14 +111,21 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
+    console.log('=== GET LESSON BY ID ===');
+    console.log('Lesson ID:', req.params.id);
+    
     const lesson = await Lesson.findById(req.params.id);
+    console.log('Found lesson:', lesson ? 'Yes' : 'No');
     
     if (!lesson) {
+      console.log('❌ Lesson not found in database');
       return res.status(404).json({
         success: false,
         message: 'Lesson not found'
       });
     }
+    
+    console.log('✅ Lesson found:', lesson.title);
     
     res.json({
       success: true,
