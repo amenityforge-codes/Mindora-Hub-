@@ -116,6 +116,7 @@ router.post('/', auth.authenticate, async (req, res) => {
       category,
       difficulty,
       duration,
+      estimatedDuration, // Also check for estimatedDuration from frontend
       content,
       objectives,
       prerequisites,
@@ -137,7 +138,7 @@ router.post('/', auth.authenticate, async (req, res) => {
       description,
       category,
       difficulty: difficulty || 'intermediate',
-      duration: duration || 30, // minutes
+      estimatedDuration: estimatedDuration || duration || 30, // minutes - use estimatedDuration as expected by model
       content: content || '',
       objectives: objectives || [],
       prerequisites: prerequisites || [],
