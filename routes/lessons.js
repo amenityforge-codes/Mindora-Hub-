@@ -648,9 +648,14 @@ router.post('/:lessonId/topics/:topicId/videos', auth.authenticate, async (req, 
       });
     }
     
-    // Find the topic (convert topicId to number for comparison)
-    const topicId = parseInt(req.params.topicId);
-    const topic = lesson.topics.find(t => t.id === topicId);
+    // Find the topic (try both string and number comparison)
+    const topicId = req.params.topicId;
+    const topicIdNum = parseInt(topicId);
+    console.log('🔍 Looking for topic ID:', topicId, '(as string)');
+    console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
+    console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
+    
+    const topic = lesson.topics.find(t => t.id === topicId || t.id === topicIdNum || t.id === topicId.toString());
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
       console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
@@ -733,9 +738,14 @@ router.post('/:lessonId/topics/:topicId/quizzes', auth.authenticate, async (req,
       });
     }
     
-    // Find the topic (convert topicId to number for comparison)
-    const topicId = parseInt(req.params.topicId);
-    const topic = lesson.topics.find(t => t.id === topicId);
+    // Find the topic (try both string and number comparison)
+    const topicId = req.params.topicId;
+    const topicIdNum = parseInt(topicId);
+    console.log('🔍 Looking for topic ID:', topicId, '(as string)');
+    console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
+    console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
+    
+    const topic = lesson.topics.find(t => t.id === topicId || t.id === topicIdNum || t.id === topicId.toString());
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
       console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
