@@ -7,10 +7,89 @@ const router = express.Router();
 // @desc    Health check for lessons API
 // @access  Public
 router.get('/health', (req, res) => {
-  res.json({
-    success: true,
+  res.json({ 
+    success: true, 
     message: 'Lessons API is healthy',
     timestamp: new Date().toISOString()
+  });
+});
+
+// @route   GET /api/lessons/test-videos
+// @desc    Test video URLs and serving
+// @access  Public
+router.get('/test-videos', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Check if uploads directory exists
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    const exists = fs.existsSync(uploadsDir);
+    
+    // Get list of video files
+    let videoFiles = [];
+    if (exists) {
+      const walkDir = (dir, basePath = '') => {
+        const files = fs.readdirSync(dir);
+        files.forEach(file => {
+          const filePath = path.join(dir, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            walkDir(filePath, path.join(basePath, file));
+          } else if (file.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) {
+            videoFiles.push({
+              name: file,
+              path: path.join(basePath, file),
+              fullPath: filePath,
+              size: stat.size,
+              url: `/uploads/${path.join(basePath, file)}`
+            });
+          }
+        });
+      };
+      walkDir(uploadsDir);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Video test results',
+      data: {
+        uploadsDirExists: exists,
+        uploadsDir: uploadsDir,
+        videoFiles: videoFiles,
+        totalVideos: videoFiles.length,
+        sampleUrls: videoFiles.slice(0, 3).map(v => ({
+          name: v.name,
+          url: `https://oyster-app-qlg6z.ondigitalocean.app${v.url}`
+        }))
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error testing videos',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/lessons/auth-test
+// @desc    Test authentication status
+// @access  Public
+router.get('/auth-test', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  res.json({
+    success: true,
+    message: 'Authentication test results',
+    data: {
+      hasAuthHeader: !!authHeader,
+      hasToken: !!token,
+      authHeader: authHeader,
+      tokenLength: token ? token.length : 0,
+      timestamp: new Date().toISOString()
+    }
   });
 });
 
@@ -78,6 +157,66 @@ router.get('/fast', (req, res) => {
       ]
     }
   });
+});
+
+// @route   GET /api/lessons/check-videos
+// @desc    Check video data in lessons
+// @access  Public
+router.get('/check-videos', async (req, res) => {
+  try {
+    const lessons = await Lesson.find({}).select('title topics');
+    let videoStats = {
+      totalLessons: lessons.length,
+      lessonsWithTopics: 0,
+      topicsWithVideos: 0,
+      totalVideos: 0,
+      videoUrls: [],
+      brokenUrls: []
+    };
+    
+    lessons.forEach(lesson => {
+      if (lesson.topics && lesson.topics.length > 0) {
+        videoStats.lessonsWithTopics++;
+        
+        lesson.topics.forEach(topic => {
+          if (topic.videos && topic.videos.length > 0) {
+            videoStats.topicsWithVideos++;
+            videoStats.totalVideos += topic.videos.length;
+            
+            topic.videos.forEach(video => {
+              if (video.videoUrl) {
+                videoStats.videoUrls.push({
+                  lesson: lesson.title,
+                  topic: topic.title,
+                  video: video.title,
+                  url: video.videoUrl,
+                  isHttp: video.videoUrl.startsWith('http'),
+                  isUploads: video.videoUrl.startsWith('/uploads/')
+                });
+                
+                if (!video.videoUrl.startsWith('http') && !video.videoUrl.startsWith('/uploads/')) {
+                  videoStats.brokenUrls.push(video.videoUrl);
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    res.json({
+      success: true,
+      message: 'Video data analysis complete',
+      data: videoStats
+    });
+  } catch (error) {
+    console.error('Error checking videos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while checking videos',
+      error: error.message
+    });
+  }
 });
 
 // @route   GET /api/lessons
@@ -546,6 +685,54 @@ router.post('/:lessonId/topics/:topicId/quizzes', auth.authenticate, async (req,
     res.status(500).json({
       success: false,
       message: 'Server error while adding quiz to lesson topic',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/lessons/fix-video-urls
+// @desc    Fix video URLs in all lessons
+// @access  Private (Admin only)
+router.get('/fix-video-urls', auth.authenticate, async (req, res) => {
+  try {
+    const lessons = await Lesson.find({});
+    let fixedCount = 0;
+    
+    for (const lesson of lessons) {
+      let lessonUpdated = false;
+      
+      if (lesson.topics && Array.isArray(lesson.topics)) {
+        for (const topic of lesson.topics) {
+          if (topic.videos && Array.isArray(topic.videos)) {
+            for (const video of topic.videos) {
+              if (video.videoUrl && !video.videoUrl.startsWith('http') && !video.videoUrl.startsWith('/uploads/')) {
+                video.videoUrl = `/uploads/${video.videoUrl}`;
+                lessonUpdated = true;
+                fixedCount++;
+              }
+            }
+          }
+        }
+      }
+      
+      if (lessonUpdated) {
+        await lesson.save();
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Fixed ${fixedCount} video URLs in lessons`,
+      data: {
+        fixedCount,
+        totalLessons: lessons.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fixing video URLs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fixing video URLs',
       error: error.message
     });
   }
