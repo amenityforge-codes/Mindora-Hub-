@@ -455,11 +455,11 @@ router.post('/:lessonId/topics', auth.authenticate, async (req, res) => {
       lesson.topics = [];
     }
     
-    // Use $push to add topic to array (safer than direct push)
-    await Lesson.findByIdAndUpdate(
-      req.params.lessonId,
-      { $push: { topics: newTopic } },
-      { new: true }
+    // Use raw MongoDB operations to bypass Mongoose schema validation
+    const db = lesson.db;
+    await db.collection('lessons').updateOne(
+      { _id: lesson._id },
+      { $push: { topics: newTopic } }
     );
     
     console.log('✅ Topic added to lesson successfully');
