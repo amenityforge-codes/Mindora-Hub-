@@ -655,18 +655,32 @@ router.post('/:lessonId/topics/:topicId/videos', auth.authenticate, async (req, 
     console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
     console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
     
-    // Try multiple ways to find the topic
-    let topic = lesson.topics.find(t => t.id == topicId); // Loose equality
-    if (!topic) {
-      topic = lesson.topics.find(t => String(t.id) === String(topicId));
-    }
-    if (!topic) {
-      topic = lesson.topics.find(t => Number(t.id) === Number(topicId));
+    // Find topic by any means necessary
+    let topic = null;
+    
+    // Try all possible ways to find the topic
+    for (let i = 0; i < lesson.topics.length; i++) {
+      const t = lesson.topics[i];
+      if (t.id == topicId || 
+          t.id === topicId || 
+          String(t.id) === String(topicId) || 
+          Number(t.id) === Number(topicId) ||
+          t._id == topicId ||
+          t._id === topicId) {
+        topic = t;
+        break;
+      }
     }
     
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
-      console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
+      console.log('Available topics:', lesson.topics.map(t => ({ 
+        id: t.id, 
+        _id: t._id, 
+        title: t.title,
+        idType: typeof t.id,
+        _idType: typeof t._id
+      })));
       return res.status(404).json({
         success: false,
         message: 'Topic not found'
@@ -753,18 +767,32 @@ router.post('/:lessonId/topics/:topicId/quizzes', auth.authenticate, async (req,
     console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
     console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
     
-    // Try multiple ways to find the topic
-    let topic = lesson.topics.find(t => t.id == topicId); // Loose equality
-    if (!topic) {
-      topic = lesson.topics.find(t => String(t.id) === String(topicId));
-    }
-    if (!topic) {
-      topic = lesson.topics.find(t => Number(t.id) === Number(topicId));
+    // Find topic by any means necessary
+    let topic = null;
+    
+    // Try all possible ways to find the topic
+    for (let i = 0; i < lesson.topics.length; i++) {
+      const t = lesson.topics[i];
+      if (t.id == topicId || 
+          t.id === topicId || 
+          String(t.id) === String(topicId) || 
+          Number(t.id) === Number(topicId) ||
+          t._id == topicId ||
+          t._id === topicId) {
+        topic = t;
+        break;
+      }
     }
     
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
-      console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
+      console.log('Available topics:', lesson.topics.map(t => ({ 
+        id: t.id, 
+        _id: t._id, 
+        title: t.title,
+        idType: typeof t.id,
+        _idType: typeof t._id
+      })));
       return res.status(404).json({
         success: false,
         message: 'Topic not found'
