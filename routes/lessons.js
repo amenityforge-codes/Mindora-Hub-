@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// Check if model already exists to prevent OverwriteModelError
 const lessonSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -44,4 +45,5 @@ const lessonSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Lesson', lessonSchema);
+// Export model, but check if it already exists to prevent OverwriteModelError
+module.exports = mongoose.models.Lesson || mongoose.model('Lesson', lessonSchema);
