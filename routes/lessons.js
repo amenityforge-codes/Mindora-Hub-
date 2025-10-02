@@ -425,14 +425,19 @@ router.post('/:lessonId/topics', auth.authenticate, async (req, res) => {
     }
     
     // Find the lesson and add the topic
+    console.log('Looking for lesson with ID:', req.params.lessonId);
     const lesson = await Lesson.findById(req.params.lessonId);
     
     if (!lesson) {
+      console.log('❌ Lesson not found');
       return res.status(404).json({
         success: false,
         message: 'Lesson not found'
       });
     }
+    
+    console.log('✅ Lesson found:', lesson.title);
+    console.log('Current topics count:', lesson.topics ? lesson.topics.length : 0);
     
     // Create topic object
     const newTopic = {
@@ -443,16 +448,21 @@ router.post('/:lessonId/topics', auth.authenticate, async (req, res) => {
       createdAt: new Date()
     };
     
+    console.log('Creating new topic:', newTopic);
+    
     // Add topic to lesson (for now, we'll store it in a topics array field)
     if (!lesson.topics) {
       lesson.topics = [];
     }
-    lesson.topics.push(newTopic);
     
-    // Save the updated lesson
-    await lesson.save();
+    // Use $push to add topic to array (safer than direct push)
+    await Lesson.findByIdAndUpdate(
+      req.params.lessonId,
+      { $push: { topics: newTopic } },
+      { new: true }
+    );
     
-    console.log('✅ Topic added to lesson:', newTopic.title);
+    console.log('✅ Topic added to lesson successfully');
     
     res.status(201).json({
       success: true,
