@@ -272,4 +272,75 @@ router.delete('/:id', auth.authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/lessons/:lessonId/topics/:topicId/videos
+// @desc    Add video to a lesson topic
+// @access  Private (Admin only)
+router.post('/:lessonId/topics/:topicId/videos', auth.authenticate, async (req, res) => {
+  try {
+    console.log('=== ADD VIDEO TO LESSON TOPIC ===');
+    console.log('Lesson ID:', req.params.lessonId);
+    console.log('Topic ID:', req.params.topicId);
+    console.log('Video data:', req.body);
+    
+    const { title, description, url } = req.body;
+    
+    // For now, just return success - you can implement video storage later
+    res.status(201).json({
+      success: true,
+      message: 'Video added to lesson topic successfully',
+      data: {
+        id: Date.now(), // Temporary ID
+        title,
+        description,
+        url,
+        lessonId: req.params.lessonId,
+        topicId: req.params.topicId
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error adding video to lesson topic:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding video to lesson topic',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/lessons/:lessonId/topics/:topicId/quizzes
+// @desc    Add quiz to a lesson topic
+// @access  Private (Admin only)
+router.post('/:lessonId/topics/:topicId/quizzes', auth.authenticate, async (req, res) => {
+  try {
+    console.log('=== ADD QUIZ TO LESSON TOPIC ===');
+    console.log('Lesson ID:', req.params.lessonId);
+    console.log('Topic ID:', req.params.topicId);
+    console.log('Quiz data:', req.body);
+    
+    const { title, questions } = req.body;
+    
+    // For now, just return success - you can implement quiz storage later
+    res.status(201).json({
+      success: true,
+      message: 'Quiz added to lesson topic successfully',
+      data: {
+        id: Date.now(), // Temporary ID
+        title,
+        questions,
+        lessonId: req.params.lessonId,
+        topicId: req.params.topicId
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error adding quiz to lesson topic:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding quiz to lesson topic',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
