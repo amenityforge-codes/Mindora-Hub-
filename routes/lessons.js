@@ -655,7 +655,15 @@ router.post('/:lessonId/topics/:topicId/videos', auth.authenticate, async (req, 
     console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
     console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
     
-    const topic = lesson.topics.find(t => t.id === topicId || t.id === topicIdNum || t.id === topicId.toString());
+    // Try multiple ways to find the topic
+    let topic = lesson.topics.find(t => t.id == topicId); // Loose equality
+    if (!topic) {
+      topic = lesson.topics.find(t => String(t.id) === String(topicId));
+    }
+    if (!topic) {
+      topic = lesson.topics.find(t => Number(t.id) === Number(topicId));
+    }
+    
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
       console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
@@ -745,7 +753,15 @@ router.post('/:lessonId/topics/:topicId/quizzes', auth.authenticate, async (req,
     console.log('🔍 Looking for topic ID:', topicIdNum, '(as number)');
     console.log('🔍 Available topics:', lesson.topics.map(t => ({ id: t.id, idType: typeof t.id, title: t.title })));
     
-    const topic = lesson.topics.find(t => t.id === topicId || t.id === topicIdNum || t.id === topicId.toString());
+    // Try multiple ways to find the topic
+    let topic = lesson.topics.find(t => t.id == topicId); // Loose equality
+    if (!topic) {
+      topic = lesson.topics.find(t => String(t.id) === String(topicId));
+    }
+    if (!topic) {
+      topic = lesson.topics.find(t => Number(t.id) === Number(topicId));
+    }
+    
     if (!topic) {
       console.log('❌ Topic not found. Looking for ID:', topicId);
       console.log('Available topics:', lesson.topics.map(t => ({ id: t.id, title: t.title })));
@@ -840,6 +856,29 @@ router.get('/fix-video-urls', auth.authenticate, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fixing video URLs',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/lessons/simple
+// @desc    Simple route to test lesson fetching
+// @access  Public
+router.get('/simple', async (req, res) => {
+  try {
+    const lessons = await Lesson.find({}).select('title description topics').limit(5);
+    res.json({
+      success: true,
+      message: 'Lessons fetched successfully',
+      data: {
+        lessons: lessons,
+        count: lessons.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching lessons',
       error: error.message
     });
   }
