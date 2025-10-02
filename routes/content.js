@@ -85,7 +85,6 @@ router.get('/', optionalAuth, [
 
     // Execute query
     const modules = await Module.find(query)
-      .populate('quiz', 'title questionCount totalMarks')
       .populate('createdBy', 'name')
       .sort({ publishAt: -1, isFeatured: -1 })
       .skip(skip)
@@ -154,7 +153,6 @@ router.get('/featured', optionalAuth, async (req, res) => {
       isFeatured: true,
       publishAt: { $lte: new Date() }
     })
-      .populate('quiz', 'title questionCount')
       .populate('createdBy', 'name')
       .sort({ publishAt: -1 })
       .limit(parseInt(limit));
@@ -206,7 +204,6 @@ router.get('/recommended', authenticate, async (req, res) => {
 
     // Get recommended modules
     let modules = await Module.find(recommendationQuery)
-      .populate('quiz', 'title questionCount')
       .populate('createdBy', 'name')
       .sort({ publishAt: -1 })
       .limit(parseInt(limit));
@@ -241,7 +238,6 @@ router.get('/recommended', authenticate, async (req, res) => {
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const module = await Module.findById(req.params.id)
-      .populate('quiz', 'title questions settings totalMarks')
       .populate('createdBy', 'name profile')
       .populate('srsBatch');
 
@@ -381,7 +377,6 @@ router.get('/search', optionalAuth, [
     };
 
     const modules = await Module.find(searchQuery)
-      .populate('quiz', 'title questionCount')
       .populate('createdBy', 'name')
       .sort({ publishAt: -1 })
       .limit(parseInt(limit));

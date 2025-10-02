@@ -4,24 +4,17 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Animated,
   Dimensions,
 } from 'react-native';
 import {
   Text,
   Card,
-  Button,
   ActivityIndicator,
-  ProgressBar,
-  Avatar,
   Chip,
-  TextInput,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -31,326 +24,165 @@ export default function AIPersonalTutorScreen() {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const navigation = useNavigation();
   
-  const [currentLesson, setCurrentLesson] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [userInput, setUserInput] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [weakAreas, setWeakAreas] = useState([
-    { area: 'Pronunciation', progress: 60, priority: 'high' },
-    { area: 'Grammar', progress: 75, priority: 'medium' },
-    { area: 'Vocabulary', progress: 85, priority: 'low' },
-  ]);
+  const [modules, setModules] = useState([]);
+  const [loadingModules, setLoadingModules] = useState(true);
 
-  const personalizedLessons = [
-    {
-      id: 1,
-      title: 'Pronunciation Focus: "TH" Sounds',
-      description: 'Practice the challenging "th" sounds in English',
-      difficulty: 'Medium',
-      estimatedTime: '15 min',
-      type: 'pronunciation',
-      exercises: [
-        'Practice "think" vs "sink"',
-        'Practice "three" vs "free"',
-        'Practice "bath" vs "bass"'
-      ]
-    },
-    {
-      id: 2,
-      title: 'Grammar: Present Perfect Tense',
-      description: 'Master the present perfect tense usage',
-      difficulty: 'Hard',
-      estimatedTime: '20 min',
-      type: 'grammar',
-      exercises: [
-        'Complete sentences with have/has',
-        'Choose correct past participle',
-        'Create your own sentences'
-      ]
-    },
-    {
-      id: 3,
-      title: 'Vocabulary: Business Terms',
-      description: 'Learn essential business vocabulary',
-      difficulty: 'Easy',
-      estimatedTime: '10 min',
-      type: 'vocabulary',
-      exercises: [
-        'Match terms with definitions',
-        'Use in context sentences',
-        'Role-play business scenarios'
-      ]
+  // Fetch Brainstorming and Math modules from API
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        console.log('=== AI PERSONAL TUTOR: Fetching Brainstorming and Math modules ===');
+        setLoadingModules(true);
+        
+        const response = await fetch('http://192.168.1.18:5000/api/modules?ageRange=6-15', {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          // Filter for Brainstorming and Math modules
+          const brainstormingMathModules = data.data.modules.filter((module: any) =>
+            module.moduleType === 'brainstorming' || module.moduleType === 'math'
+          );
+
+          console.log('=== AI PERSONAL TUTOR: Found Brainstorming/Math modules:', brainstormingMathModules.length);
+          console.log('=== AI PERSONAL TUTOR: Modules:', brainstormingMathModules);
+
+          setModules(brainstormingMathModules);
+        }
+      } catch (error) {
+        console.error('Error fetching Brainstorming/Math modules:', error);
+      } finally {
+        setLoadingModules(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
+  const getModuleColor = (moduleType: string) => {
+    switch (moduleType) {
+      case 'brainstorming': return '#f59e0b';
+      case 'math': return '#8b5cf6';
+      case 'logic': return '#06b6d4';
+      case 'creative': return '#ef4444';
+      default: return '#f59e0b';
     }
-  ];
-
-  const handleStartLesson = async (lesson: any) => {
-    setIsLoading(true);
-    setCurrentLesson(lesson.id);
-    
-    // Simulate AI tutor preparing lesson
-    setTimeout(() => {
-      setAiResponse(`Great choice! Let's work on ${lesson.title}. I've prepared some personalized exercises based on your learning patterns. Ready to begin?`);
-      setIsLoading(false);
-    }, 2000);
   };
 
-  const handleSubmitAnswer = async () => {
-    if (!userInput.trim()) return;
-    
-    setIsTyping(true);
-    
-    // Simulate AI analyzing response
-    setTimeout(() => {
-      setAiResponse(`Excellent work! Your answer shows improvement in this area. Let me give you some feedback and the next exercise...`);
-      setUserInput('');
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const renderAIHeader = () => (
-    <LinearGradient
-      colors={['#6366f1', '#8b5cf6']}
-      style={styles.header}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.headerContent}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>AI Personal Tutor</Text>
-          <Text style={styles.headerSubtitle}>Your personalized learning companion</Text>
-        </View>
-        <TouchableOpacity onPress={toggleTheme}>
-          <MaterialIcons 
-            name={isDarkMode ? "wb-sunny" : "nightlight-round"} 
-            size={24} 
-            color="white" 
-          />
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
-  );
-
-  const renderTutorProfile = () => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <View style={styles.tutorProfile}>
-          <Avatar.Icon 
-            size={64} 
-            icon="psychology" 
-            style={{ backgroundColor: '#6366f1' }}
-          />
-          <View style={styles.tutorInfo}>
-            <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
-              Dr. AI Tutor
-            </Text>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              Your Personal English Learning Assistant
-            </Text>
-            <View style={styles.tutorStats}>
-              <Chip mode="outlined" compact style={styles.statChip}>
-                <MaterialIcons name="trending-up" size={16} color="#10b981" />
-                <Text style={{ marginLeft: 4, color: '#10b981' }}>75% Progress</Text>
-              </Chip>
-              <Chip mode="outlined" compact style={styles.statChip}>
-                <MaterialIcons name="local-fire-department" size={16} color="#f59e0b" />
-                <Text style={{ marginLeft: 4, color: '#f59e0b' }}>12 Day Streak</Text>
-              </Chip>
-            </View>
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
-  const renderWeakAreas = () => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 16 }}>
-          Focus Areas
-        </Text>
-        {weakAreas.map((area, index) => (
-          <View key={index} style={styles.weakAreaItem}>
-            <View style={styles.weakAreaHeader}>
-              <Text variant="bodyLarge" style={{ fontWeight: '500' }}>
-                {area.area}
-              </Text>
-              <Chip 
-                mode="outlined" 
-                compact 
-                style={[
-                  styles.priorityChip,
-                  { 
-                    backgroundColor: area.priority === 'high' ? '#fef2f2' : 
-                                   area.priority === 'medium' ? '#fef3c7' : '#f0fdf4',
-                    borderColor: area.priority === 'high' ? '#ef4444' : 
-                                area.priority === 'medium' ? '#f59e0b' : '#10b981'
-                  }
-                ]}
-              >
-                <Text style={{ 
-                  color: area.priority === 'high' ? '#ef4444' : 
-                         area.priority === 'medium' ? '#f59e0b' : '#10b981',
-                  fontSize: 12 
-                }}>
-                  {area.priority.toUpperCase()}
-                </Text>
-              </Chip>
-            </View>
-            <ProgressBar 
-              progress={area.progress / 100} 
-              color={area.priority === 'high' ? '#ef4444' : 
-                     area.priority === 'medium' ? '#f59e0b' : '#10b981'}
-              style={styles.progressBar}
-            />
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
-              {area.progress}% Mastery
-            </Text>
-          </View>
-        ))}
-      </Card.Content>
-    </Card>
-  );
-
-  const renderPersonalizedLessons = () => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 16 }}>
-          Personalized Lessons
-        </Text>
-        {personalizedLessons.map((lesson) => (
-          <TouchableOpacity
-            key={lesson.id}
-            style={[
-              styles.lessonCard,
-              { backgroundColor: theme.colors.background },
-              currentLesson === lesson.id && { borderColor: theme.colors.primary, borderWidth: 2 }
-            ]}
-            onPress={() => handleStartLesson(lesson)}
-          >
-            <View style={styles.lessonHeader}>
-              <View style={styles.lessonIcon}>
-                <MaterialIcons 
-                  name={
-                    lesson.type === 'pronunciation' ? 'mic' :
-                    lesson.type === 'grammar' ? 'edit' : 'book'
-                  } 
-                  size={24} 
-                  color="white" 
-                />
-              </View>
-              <View style={styles.lessonInfo}>
-                <Text variant="titleSmall" style={{ fontWeight: 'bold' }}>
-                  {lesson.title}
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  {lesson.description}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.lessonMeta}>
-              <Chip mode="outlined" compact style={styles.metaChip}>
-                <Text style={{ fontSize: 12 }}>{lesson.difficulty}</Text>
-              </Chip>
-              <Chip mode="outlined" compact style={styles.metaChip}>
-                <MaterialIcons name="timer" size={16} color={theme.colors.onSurfaceVariant} />
-                <Text style={{ marginLeft: 4, fontSize: 12 }}>{lesson.estimatedTime}</Text>
-              </Chip>
-            </View>
-
-            <View style={styles.exercisesList}>
-              {lesson.exercises.map((exercise, idx) => (
-                <View key={idx} style={styles.exerciseItem}>
-                  <MaterialIcons name="check-circle-outline" size={16} color="#10b981" />
-                  <Text variant="bodySmall" style={{ marginLeft: 8, flex: 1 }}>
-                    {exercise}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </Card.Content>
-    </Card>
-  );
-
-  const renderAIChat = () => {
-    if (!currentLesson) return null;
-
-    return (
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
-          <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 16 }}>
-            AI Tutor Chat
-          </Text>
-          
-          {aiResponse ? (
-            <View style={styles.aiResponseContainer}>
-              <Avatar.Icon 
-                size={32} 
-                icon="psychology" 
-                style={{ backgroundColor: '#6366f1' }}
-              />
-              <View style={styles.aiResponseBubble}>
-                <Text style={styles.aiResponseText}>{aiResponse}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: theme.colors.background }]}
-              placeholder="Type your answer or question..."
-              placeholderTextColor={theme.colors.onSurfaceVariant}
-              value={userInput}
-              onChangeText={setUserInput}
-              multiline
-              mode="outlined"
-            />
-            <Button
-              mode="contained"
-              onPress={handleSubmitAnswer}
-              disabled={!userInput.trim() || isTyping}
-              style={styles.submitButton}
-            >
-              {isTyping ? 'Analyzing...' : 'Submit'}
-            </Button>
-          </View>
-
-          {isTyping && (
-            <View style={styles.typingIndicator}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={{ marginLeft: 8, color: theme.colors.onSurfaceVariant }}>
-                AI is analyzing your response...
-              </Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-    );
+  const getModuleIcon = (moduleType: string) => {
+    switch (moduleType) {
+      case 'brainstorming': return 'lightbulb';
+      case 'math': return 'calculate';
+      case 'logic': return 'psychology';
+      case 'creative': return 'palette';
+      default: return 'lightbulb';
+    }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        {renderAIHeader()}
-        {renderTutorProfile()}
-        {renderWeakAreas()}
-        {renderPersonalizedLessons()}
-        {renderAIChat()}
-        
-        {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={{ marginTop: 16, color: theme.colors.onSurface }}>
-              AI Tutor is preparing your lesson...
-            </Text>
-          </View>
-        )}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text variant="headlineSmall" style={[styles.headerTitle, { color: theme.colors.text }]}>
+            Brainstorming & Math Modules
+          </Text>
+          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+            <MaterialIcons 
+              name={isDarkMode ? "light-mode" : "dark-mode"} 
+              size={24} 
+              color={theme.colors.text} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          {loadingModules ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={{ marginTop: 10, color: theme.colors.text }}>Loading Brainstorming & Math modules...</Text>
+            </View>
+          ) : modules.length > 0 ? (
+            modules.map((module: any) => (
+              <Card key={module._id} style={[styles.moduleCard, { backgroundColor: theme.colors.surface }]}>
+                <Card.Content>
+                  <View style={styles.moduleHeader}>
+                    <MaterialIcons 
+                      name={getModuleIcon(module.moduleType)} 
+                      size={32} 
+                      color={getModuleColor(module.moduleType)} 
+                    />
+                    <View style={styles.moduleInfo}>
+                      <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                        {module.title}
+                      </Text>
+                      <Text variant="bodyMedium" style={{ color: theme.colors.textSecondary }}>
+                        {module.description}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.moduleMeta}>
+                    <Chip mode="outlined" compact>
+                      <Text style={{ fontSize: 12 }}>{module.difficulty}</Text>
+                    </Chip>
+                    <Chip mode="outlined" compact>
+                      <MaterialIcons name="timer" size={16} color={theme.colors.textSecondary} />
+                      <Text style={{ marginLeft: 4, fontSize: 12 }}>{module.estimatedDuration || '30 min'}</Text>
+                    </Chip>
+                    <Chip mode="outlined" compact>
+                      <Text style={{ fontSize: 12 }}>{module.moduleType}</Text>
+                    </Chip>
+                  </View>
+
+                  {module.topics && module.topics.length > 0 && (
+                    <View style={styles.topicsSection}>
+                      <Text variant="titleSmall" style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                        Topics ({module.topics.length})
+                      </Text>
+                      {module.topics.map((topic: any, index: number) => (
+                        <TouchableOpacity
+                          key={topic._id || index}
+                          style={[styles.topicItem, { backgroundColor: theme.colors.background }]}
+                          onPress={() => {
+                            // Navigate to topic detail screen
+                            (navigation as any).navigate('TopicStudy', {
+                              topicId: topic._id,
+                              topicTitle: topic.title,
+                              moduleId: module._id
+                            });
+                          }}
+                        >
+                          <MaterialIcons name="folder" size={20} color={getModuleColor(module.moduleType)} />
+                          <Text variant="bodyMedium" style={{ marginLeft: 8, flex: 1 }}>
+                            {topic.title}
+                          </Text>
+                          <MaterialIcons name="chevron-right" size={20} color={theme.colors.textSecondary} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
+            ))
+          ) : (
+            <View style={styles.noModulesContainer}>
+              <MaterialIcons name="info" size={48} color={theme.colors.textSecondary} />
+              <Text style={[styles.noModulesText, { color: theme.colors.text }]}>
+                No Brainstorming & Math modules available
+              </Text>
+              <Text style={[styles.noModulesSubtext, { color: theme.colors.textSecondary }]}>
+                Check back later or contact your administrator
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -360,149 +192,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
   header: {
-    padding: 20,
-    paddingBottom: 16,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    flex: 1,
+    textAlign: 'center',
     fontWeight: 'bold',
-    color: 'white',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+  themeToggle: {
+    padding: 8,
   },
-  card: {
-    margin: 16,
-    marginTop: 0,
+  content: {
+    padding: 16,
+  },
+  moduleCard: {
+    marginBottom: 16,
     elevation: 2,
   },
-  tutorProfile: {
+  moduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  tutorInfo: {
+  moduleInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
-  tutorStats: {
+  moduleMeta: {
     flexDirection: 'row',
-    marginTop: 8,
+    flexWrap: 'wrap',
     gap: 8,
-  },
-  statChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weakAreaItem: {
     marginBottom: 16,
   },
-  weakAreaHeader: {
+  topicsSection: {
+    marginTop: 8,
+  },
+  topicItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 8,
   },
-  priorityChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-  },
-  lessonCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  lessonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  lessonIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#6366f1',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    padding: 40,
   },
-  lessonInfo: {
+  noModulesContainer: {
     flex: 1,
-  },
-  lessonMeta: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  metaChip: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
   },
-  exercisesList: {
-    marginTop: 8,
-  },
-  exerciseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  aiResponseContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  aiResponseBubble: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  aiResponseText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  inputContainer: {
+  noModulesText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginTop: 16,
+    textAlign: 'center',
   },
-  textInput: {
-    marginBottom: 12,
-  },
-  submitButton: {
-    alignSelf: 'flex-end',
-  },
-  typingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  loadingContainer: {
-    padding: 32,
-    alignItems: 'center',
+  noModulesSubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
-
-
-
-
-
-

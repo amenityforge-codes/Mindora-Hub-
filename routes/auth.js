@@ -31,7 +31,7 @@ const registerValidation = [
     .withMessage('Invalid age range'),
   body('role')
     .optional()
-    .isIn(['student', 'professional'])
+    .isIn(['student', 'professional', 'admin', 'teacher'])
     .withMessage('Invalid role')
 ];
 

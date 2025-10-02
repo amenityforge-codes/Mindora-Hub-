@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Import screens
-import AdultsDashboard from '../screens/dashboard/AdultsDashboard';
+import AdultsDashboard from '../screens/adultdashboard/AdultsDashboard';
 import BusinessDashboard from '../screens/dashboard/BusinessDashboard';
 import ChildrenDashboard from '../screens/dashboard/ChildrenDashboard';
 import TeensDashboard from '../screens/dashboard/TeensDashboard';
@@ -13,6 +13,7 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 import ModulesScreen from '../screens/main/ModulesScreen';
 import ProgressScreen from '../screens/main/ProgressScreen';
 import ModuleDetailScreen from '../screens/main/ModuleDetailScreen';
+import LessonDetailScreen from '../screens/main/LessonDetailScreen';
 import TopicContentScreen from '../screens/main/TopicContentScreen';
 import VideoQuizScreen from '../screens/main/VideoQuizScreen';
 import QuizScreen from '../screens/main/QuizScreen';
@@ -28,22 +29,39 @@ import AIFinanceScreen from '../screens/main/AIFinanceScreen';
 import AIPersonalTutorScreen from '../screens/main/AIPersonalTutorScreen';
 import CommunicationEnglishScreen from '../screens/main/CommunicationEnglishScreen';
 import SoftSkillsScreen from '../screens/main/SoftSkillsScreen';
+import AchievementScreen from '../screens/main/AchievementScreen';
 
 // Import admin screens
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import SimpleAdminDashboardScreen from '../screens/admin/SimpleAdminDashboardScreen';
+
+// Import adult admin screens
+import AdultAdminDashboardScreen from '../screens/adultadmin/AdminDashboardScreen';
+import AdultSimpleAdminDashboardScreen from '../screens/adultadmin/SimpleAdminDashboardScreen';
 import AdminContentManagementScreen from '../screens/admin/AdminContentManagementScreen';
 import KidsContentManagementScreen from '../screens/admin/KidsContentManagementScreen';
 import ContentUploadScreen from '../screens/admin/ContentUploadScreen';
-import QuizManagementScreen from '../screens/admin/QuizManagementScreen';
 import SpeakingCoachManagementScreen from '../screens/admin/SpeakingCoachManagementScreen';
 import SentenceBuilderManagementScreen from '../screens/admin/SentenceBuilderManagementScreen';
 import VideoQuizSequenceScreen from '../screens/admin/VideoQuizSequenceScreen';
 import VideoUploadScreen from '../screens/admin/VideoUploadScreen';
-import UserManagementScreen from '../screens/admin/UserManagementScreen';
 import AdminModuleDetailScreen from '../screens/admin/AdminModuleDetailScreen';
-import ModuleManagementScreen from '../screens/admin/ModuleManagementScreen';
 import EnhancedLessonManagementScreen from '../screens/admin/EnhancedLessonManagementScreen';
+import CategoryModuleManagementScreen from '../screens/admin/CategoryModuleManagementScreen';
+import AIFinanceManagementScreen from '../screens/admin/AIFinanceManagementScreen';
+import SoftSkillsManagementScreen from '../screens/admin/SoftSkillsManagementScreen';
+import BrainstormingManagementScreen from '../screens/admin/BrainstormingManagementScreen';
+import MathManagementScreen from '../screens/admin/MathManagementScreen';
+import LoginManagementScreen from '../screens/admin/LoginManagementScreen';
+import AchievementManagementScreen from '../screens/admin/AchievementManagementScreen';
+import ExamManagementScreen from '../screens/admin/ExamManagementScreen';
+import TopicDetailScreen from '../screens/admin/TopicDetailScreen';
+import TopicStudyScreen from '../screens/main/TopicStudyScreen';
+import ExamStatisticsScreen from '../screens/admin/ExamStatisticsScreen';
+import ExamTakingScreen from '../screens/main/ExamTakingScreen';
+import ExamResultsScreen from '../screens/main/ExamResultsScreen';
+import CertificatesScreen from '../screens/main/CertificatesScreen';
+import CertificationsPage from '../screens/main/CertificationsPage';
 
 import { RootStackParamList } from '../types';
 import { useAppSelector } from '../hooks/redux';
@@ -56,6 +74,11 @@ function DynamicDashboard({ navigation }: { navigation: any }) {
   
   // Check if user is admin first
   if (user?.role === 'admin') {
+    // Route to adult admin dashboard if user is adult admin
+    if (user?.ageRange === '16+' || user?.email === 'amenityforge-adult@gmail.com') {
+      return <AdultSimpleAdminDashboardScreen navigation={navigation} />;
+    }
+    // Route to children admin dashboard for children admin
     return <SimpleAdminDashboardScreen navigation={navigation} />;
   }
   
@@ -116,6 +139,11 @@ export default function MainNavigator() {
         name="ModuleDetail" 
         component={ModuleDetailScreen}
         options={{ title: 'Module Details' }}
+      />
+      <Stack.Screen 
+        name="LessonDetail" 
+        component={LessonDetailScreen}
+        options={{ title: 'Lesson Details' }}
       />
       <Stack.Screen 
         name="TopicContent" 
@@ -186,6 +214,31 @@ export default function MainNavigator() {
         component={SoftSkillsScreen}
         options={{ title: 'Soft Skills' }}
       />
+      <Stack.Screen 
+        name="Achievements" 
+        component={AchievementScreen}
+        options={{ title: 'My Achievements' }}
+      />
+      <Stack.Screen 
+        name="ExamTaking" 
+        component={ExamTakingScreen}
+        options={{ title: 'Take Exam' }}
+      />
+      <Stack.Screen 
+        name="ExamResults" 
+        component={ExamResultsScreen}
+        options={{ title: 'Exam Results' }}
+      />
+      <Stack.Screen 
+        name="Certifications" 
+        component={CertificationsPage}
+        options={{ title: 'Certifications' }}
+      />
+      <Stack.Screen 
+        name="Certificates" 
+        component={CertificatesScreen}
+        options={{ title: 'My Certificates' }}
+      />
       
       {/* Dashboard Screens */}
       <Stack.Screen 
@@ -215,6 +268,108 @@ export default function MainNavigator() {
         component={SimpleAdminDashboardScreen}
         options={{ title: 'Admin Dashboard' }}
       />
+      
+      {/* Adult Admin Screens */}
+      <Stack.Screen 
+        name="AdultAdminDashboard" 
+        component={AdultSimpleAdminDashboardScreen}
+        options={{ title: 'Adult Admin Dashboard' }}
+      />
+      <Stack.Screen 
+        name="AdultAdminContentManagement" 
+        component={require('../screens/adultadmin/AdminContentManagementScreen').default}
+        options={{ title: 'Adult Content Management' }}
+      />
+      <Stack.Screen 
+        name="AdultAIFinanceManagement" 
+        component={require('../screens/adultadmin/AIFinanceManagementScreen').default}
+        options={{ title: 'Adult AI & Finance Management' }}
+      />
+      <Stack.Screen 
+        name="AdultSoftSkillsManagement" 
+        component={require('../screens/adultadmin/SoftSkillsManagementScreen').default}
+        options={{ title: 'Adult Soft Skills Management' }}
+      />
+      <Stack.Screen 
+        name="AdultBrainstormingManagement" 
+        component={require('../screens/adultadmin/BrainstormingManagementScreen').default}
+        options={{ title: 'Adult Brainstorming Management' }}
+      />
+      <Stack.Screen 
+        name="AdultMathManagement" 
+        component={require('../screens/adultadmin/MathManagementScreen').default}
+        options={{ title: 'Adult Math Management' }}
+      />
+      <Stack.Screen 
+        name="AdultTopicDetail" 
+        component={require('../screens/adultadmin/TopicDetailScreen').default}
+        options={{ title: 'Adult Topic Detail' }}
+      />
+      <Stack.Screen 
+        name="AdultModuleManagement" 
+        component={require('../screens/adultadmin/AdminModuleDetailScreen').default}
+        options={{ title: 'Adult Module Management' }}
+      />
+      <Stack.Screen 
+        name="AdultContentUpload" 
+        component={require('../screens/adultadmin/ContentUploadScreen').default}
+        options={{ title: 'Adult Content Upload' }}
+      />
+      <Stack.Screen 
+        name="AdultVideoUpload" 
+        component={require('../screens/adultadmin/VideoUploadScreen').default}
+        options={{ title: 'Adult Video Upload' }}
+      />
+      <Stack.Screen 
+        name="AdultQuizManagement" 
+        component={require('../screens/adultadmin/ExamManagementScreen').default}
+        options={{ title: 'Adult Quiz Management' }}
+      />
+      <Stack.Screen 
+        name="AdultUserManagement" 
+        component={require('../screens/adultadmin/LoginManagementScreen').default}
+        options={{ title: 'Adult User Management' }}
+      />
+      <Stack.Screen 
+        name="AdultEnhancedLessonManagement" 
+        component={require('../screens/adultadmin/EnhancedLessonManagementScreen').default}
+        options={{ title: 'Adult Lesson Management' }}
+      />
+      <Stack.Screen 
+        name="AdultAchievementManagement" 
+        component={require('../screens/adultadmin/AchievementManagementScreen').default}
+        options={{ title: 'Adult Achievement Management' }}
+      />
+      <Stack.Screen 
+        name="AdultExamManagement" 
+        component={require('../screens/adultadmin/ExamManagementScreen').default}
+        options={{ title: 'Adult Exam Management' }}
+      />
+      <Stack.Screen 
+        name="AdultExamStatistics" 
+        component={require('../screens/adultadmin/ExamStatisticsScreen').default}
+        options={{ title: 'Adult Exam Statistics' }}
+      />
+      <Stack.Screen 
+        name="AdultSpeakingCoachManagement" 
+        component={require('../screens/adultadmin/SpeakingCoachManagementScreen').default}
+        options={{ title: 'Adult Speaking Coach Management' }}
+      />
+      <Stack.Screen 
+        name="AdultSentenceBuilderManagement" 
+        component={require('../screens/adultadmin/SentenceBuilderManagementScreen').default}
+        options={{ title: 'Adult Sentence Builder Management' }}
+      />
+      <Stack.Screen 
+        name="AdultCertificates" 
+        component={require('../screens/adultadmin/AdminContentManagementScreen').default}
+        options={{ title: 'Adult Certificate Management' }}
+      />
+      <Stack.Screen 
+        name="AdultAnalytics" 
+        component={require('../screens/adultadmin/AdminContentManagementScreen').default}
+        options={{ title: 'Adult Analytics' }}
+      />
       <Stack.Screen 
         name="AdminContentManagement" 
         component={AdminContentManagementScreen}
@@ -229,11 +384,6 @@ export default function MainNavigator() {
         name="ContentUpload" 
         component={ContentUploadScreen}
         options={{ title: 'Content Upload' }}
-      />
-      <Stack.Screen 
-        name="QuizManagement" 
-        component={QuizManagementScreen}
-        options={{ title: 'Quiz Management' }}
       />
       <Stack.Screen 
         name="SpeakingCoachManagement" 
@@ -256,24 +406,69 @@ export default function MainNavigator() {
         options={{ title: 'Video Upload' }}
       />
       <Stack.Screen 
-        name="UserManagement" 
-        component={UserManagementScreen}
-        options={{ title: 'User Management' }}
-      />
-      <Stack.Screen 
-        name="ModuleManagement" 
-        component={ModuleManagementScreen}
-        options={{ title: 'Module Management' }}
-      />
-      <Stack.Screen 
         name="EnhancedLessonManagement" 
         component={EnhancedLessonManagementScreen}
         options={{ title: 'Lesson Management' }}
       />
       <Stack.Screen 
+        name="CategoryModuleManagement" 
+        component={CategoryModuleManagementScreen}
+        options={{ title: 'Category Module Management' }}
+      />
+      <Stack.Screen 
+        name="AIFinanceManagement" 
+        component={AIFinanceManagementScreen}
+        options={{ title: 'AI & Finance Management' }}
+      />
+      <Stack.Screen 
+        name="SoftSkillsManagement" 
+        component={SoftSkillsManagementScreen}
+        options={{ title: 'Soft Skills Management' }}
+      />
+      <Stack.Screen 
+        name="BrainstormingManagement" 
+        component={BrainstormingManagementScreen}
+        options={{ title: 'Brainstorming Management' }}
+      />
+      <Stack.Screen 
+        name="MathManagement" 
+        component={MathManagementScreen}
+        options={{ title: 'Math Management' }}
+      />
+      <Stack.Screen 
+        name="LoginManagement" 
+        component={LoginManagementScreen}
+        options={{ title: 'Login Management' }}
+      />
+      <Stack.Screen 
+        name="AchievementManagement" 
+        component={AchievementManagementScreen}
+        options={{ title: 'Achievement Management' }}
+      />
+      <Stack.Screen 
+        name="ExamManagement" 
+        component={ExamManagementScreen}
+        options={{ title: 'Exam Management' }}
+      />
+      <Stack.Screen 
+        name="ExamStatistics" 
+        component={ExamStatisticsScreen}
+        options={{ title: 'Exam Statistics' }}
+      />
+      <Stack.Screen 
         name="AdminModuleDetail" 
         component={AdminModuleDetailScreen}
         options={{ title: 'Admin Module Detail' }}
+      />
+      <Stack.Screen 
+        name="TopicDetail" 
+        component={TopicDetailScreen}
+        options={{ title: 'Topic Management' }}
+      />
+      <Stack.Screen 
+        name="TopicStudy" 
+        component={TopicStudyScreen}
+        options={{ title: 'Study Materials' }}
       />
      
     </Stack.Navigator>

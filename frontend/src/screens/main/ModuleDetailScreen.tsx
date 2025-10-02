@@ -33,7 +33,11 @@ export default function ModuleDetailScreen() {
   const route = useRoute();
   const dispatch = useAppDispatch();
   
-  const { moduleId } = route.params as { moduleId: string };
+  const { moduleId, isLesson, lessonData } = route.params as { 
+    moduleId: string; 
+    isLesson?: boolean; 
+    lessonData?: any; 
+  };
   
   const { currentModule, isLoading } = useAppSelector((state) => state.content);
   const { user } = useAppSelector((state) => state.auth);
@@ -51,9 +55,17 @@ export default function ModuleDetailScreen() {
   useEffect(() => {
     console.log('=== MODULE DETAIL SCREEN USEEFFECT ===');
     console.log('moduleId received:', moduleId);
-    console.log('moduleId type:', typeof moduleId);
+    console.log('isLesson:', isLesson);
+    console.log('lessonData:', lessonData);
     
-    if (moduleId) {
+    if (isLesson && lessonData) {
+      console.log('=== HANDLING LESSON FROM LESSON MANAGEMENT ===');
+      console.log('Lesson title:', lessonData.title);
+      console.log('Lesson topics:', lessonData.topics?.length || 0);
+      // For lessons, we already have the data, so we can use it directly
+      setTopics(lessonData.topics || []);
+      // Don't call fetchModule for lessons as they don't exist in the main modules system
+    } else if (moduleId) {
       console.log('Fetching real module from API for ID:', moduleId);
       dispatch(fetchModule(moduleId));
       loadModuleContent();
@@ -92,8 +104,8 @@ export default function ModuleDetailScreen() {
 
       // Fetch videos and quizzes for this module
       const [videosResponse, quizzesResponse] = await Promise.all([
-        fetch(`http://192.168.200.129:5000/api/video/module/${moduleId}`, { headers }),
-        fetch(`http://192.168.200.129:5000/api/quiz/module/${moduleId}`, { headers })
+        fetch(`http://192.168.1.18:5000/api/video/module/${moduleId}`, { headers }),
+        fetch(`http://192.168.1.18:5000/api/quiz/module/${moduleId}`, { headers })
       ]);
 
       if (videosResponse.ok) {

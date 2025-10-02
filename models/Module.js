@@ -88,7 +88,33 @@ const moduleSchema = new mongoose.Schema({
       url: String,
       duration: Number,
       thumbnail: String,
-      description: String
+      description: String,
+      videoUrl: String,
+      isLocalFile: Boolean,
+      uploadedAt: Date
+    }],
+    questions: [{
+      question: { type: String },
+      options: [{ type: String }],
+      correctAnswer: { type: Number },
+      explanation: { type: String },
+      type: { type: String },
+      scenario: { type: String },
+      maxAttempts: { type: Number },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    notes: [{
+      title: { type: String },
+      fileUrl: { type: String },
+      fileType: { type: String },
+      uploadedAt: { type: Date, default: Date.now }
+    }],
+    links: [{
+      title: { type: String },
+      url: { type: String },
+      description: { type: String },
+      type: { type: String },
+      createdAt: { type: Date, default: Date.now }
     }],
     quizzes: [{
       title: String,

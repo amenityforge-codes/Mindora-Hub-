@@ -138,7 +138,7 @@ export default function QuizScreen() {
       }
 
       // Use the correct API endpoint for quiz submission
-      const response = await fetch(`http://192.168.200.129:5000/api/quiz/${quizId}/submit`, {
+      const response = await fetch(`http://192.168.1.18:5000/api/quiz/${quizId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

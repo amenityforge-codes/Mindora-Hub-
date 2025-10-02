@@ -35,16 +35,6 @@ interface GameChallenge {
   color: string[];
 }
 
-interface LearningModule {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  color: string[];
-  progress: number;
-  totalLessons: number;
-  completedLessons: number;
-}
 
 const CommunicationEnglishScreen: React.FC = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
@@ -130,48 +120,6 @@ const CommunicationEnglishScreen: React.FC = () => {
     }
   ];
 
-  const learningModules: LearningModule[] = [
-    {
-      id: '1',
-      title: '📝 Writing Mastery',
-      description: 'Learn to write like a pro with structured lessons',
-      icon: 'edit',
-      color: ['#667eea', '#764ba2'],
-      progress: 75,
-      totalLessons: 12,
-      completedLessons: 9
-    },
-    {
-      id: '2',
-      title: '🗣️ Speaking Confidence',
-      description: 'Build confidence in speaking English fluently',
-      icon: 'mic',
-      color: ['#f093fb', '#f5576c'],
-      progress: 60,
-      totalLessons: 15,
-      completedLessons: 9
-    },
-    {
-      id: '3',
-      title: '📚 Grammar Fundamentals',
-      description: 'Master the building blocks of English grammar',
-      icon: 'school',
-      color: ['#4ecdc4', '#44a08d'],
-      progress: 85,
-      totalLessons: 20,
-      completedLessons: 17
-    },
-    {
-      id: '4',
-      title: '🎧 Listening Skills',
-      description: 'Improve comprehension with audio exercises',
-      icon: 'headphones',
-      color: ['#ffecd2', '#fcb69f'],
-      progress: 45,
-      totalLessons: 10,
-      completedLessons: 4
-    }
-  ];
 
   useEffect(() => {
     // Animate in
@@ -258,26 +206,6 @@ const CommunicationEnglishScreen: React.FC = () => {
     }
   };
 
-  const startModule = (module: LearningModule) => {
-    Alert.alert(
-      `📚 ${module.title}`,
-      `Start learning ${module.title}?\n\nProgress: ${module.completedLessons}/${module.totalLessons} lessons completed`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Start Learning!', 
-          onPress: () => {
-            // Simulate module start
-            Alert.alert(
-              "🚀 Let's Go!",
-              "Module started! Complete lessons to earn points and level up!",
-              [{ text: 'Awesome!', style: 'default' }]
-            );
-          }
-        }
-      ]
-    );
-  };
 
   const renderGameCard = (game: GameChallenge) => (
     <TouchableOpacity
@@ -309,131 +237,6 @@ const CommunicationEnglishScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const renderModuleCard = (module: LearningModule, index: number) => (
-    <Animated.View
-      key={module.id}
-      style={[
-        styles.skillCard,
-        {
-          opacity: fadeAnim,
-          transform: [
-            { translateY: slideAnim },
-            { scale: scaleAnim }
-          ]
-        }
-      ]}
-    >
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={4}>
-        <TouchableOpacity
-          onPress={() => startModule(module)}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={module.color}
-            style={styles.cardHeader}
-          >
-            <View style={styles.cardHeaderContent}>
-              <View style={styles.skillMaterialIconsContainer}>
-                <MaterialIcons name={module.icon as any} size={32} color="white" />
-              </View>
-              <View style={styles.skillInfo}>
-                <Text style={styles.skillTitle}>{module.title}</Text>
-                <Text style={styles.skillDescription}>{module.description}</Text>
-              </View>
-            </View>
-          </LinearGradient>
-
-          <Card.Content style={styles.cardContent}>
-            <View style={styles.skillMeta}>
-              <Chip
-                mode="outlined"
-                compact
-                style={[styles.difficultyChip, { borderColor: module.color[0] }]}
-                textStyle={{ color: module.color[0], fontSize: 12 }}
-              >
-                {module.progress}% Complete
-              </Chip>
-              <Text style={[styles.durationText, { color: theme.colors.onSurfaceVariant }]}>
-                {module.completedLessons}/{module.totalLessons} lessons
-              </Text>
-            </View>
-
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${module.progress}%` }]} />
-              </View>
-            </View>
-
-            <View style={styles.topicsContainer}>
-              <Text style={[styles.topicsTitle, { color: theme.colors.onSurface }]}>
-                Learning Topics:
-              </Text>
-              <View style={styles.topicsList}>
-                <Chip
-                  mode="outlined"
-                  compact
-                  style={styles.topicChip}
-                  textStyle={{ fontSize: 10 }}
-                >
-                  Structured Lessons
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  compact
-                  style={styles.topicChip}
-                  textStyle={{ fontSize: 10 }}
-                >
-                  Progress Tracking
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  compact
-                  style={styles.topicChip}
-                  textStyle={{ fontSize: 10 }}
-                >
-                  Interactive
-                </Chip>
-              </View>
-            </View>
-
-            <View style={styles.skillsContainer}>
-              <Text style={[styles.skillsTitle, { color: theme.colors.onSurface }]}>
-                Skills Focus:
-              </Text>
-              <View style={styles.skillsList}>
-                <Chip
-                  mode="flat"
-                  compact
-                  style={[styles.skillChip, { backgroundColor: module.color[0] + '20' }]}
-                  textStyle={{ color: module.color[0], fontSize: 10 }}
-                >
-                  {module.title.includes('Writing') ? 'Writing' :
-                   module.title.includes('Speaking') ? 'Speaking' :
-                   module.title.includes('Grammar') ? 'Grammar' : 'Listening'}
-                </Chip>
-                <Chip
-                  mode="flat"
-                  compact
-                  style={[styles.skillChip, { backgroundColor: module.color[0] + '20' }]}
-                  textStyle={{ color: module.color[0], fontSize: 10 }}
-                >
-                  Mastery
-                </Chip>
-                <Chip
-                  mode="flat"
-                  compact
-                  style={[styles.skillChip, { backgroundColor: module.color[0] + '20' }]}
-                  textStyle={{ color: module.color[0], fontSize: 10 }}
-                >
-                  Practice
-                </Chip>
-              </View>
-            </View>
-          </Card.Content>
-        </TouchableOpacity>
-      </Card>
-    </Animated.View>
-  );
 
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
@@ -587,15 +390,6 @@ const CommunicationEnglishScreen: React.FC = () => {
       >
         <View style={styles.content}>
           <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-            Learning Modules
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Structured courses to improve your English communication skills
-          </Text>
-
-          {learningModules.map(renderModuleCard)}
-
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
             Interactive Games
           </Text>
           <Text style={[styles.sectionSubtitle, { color: theme.colors.onSurfaceVariant }]}>
@@ -674,105 +468,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 24,
     lineHeight: 22,
-  },
-  skillCard: {
-    marginBottom: 20,
-  },
-  card: {
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    padding: 20,
-  },
-  cardHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  skillIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  skillInfo: {
-    flex: 1,
-  },
-  skillTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
-  },
-  skillDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 20,
-  },
-  cardContent: {
-    padding: 20,
-  },
-  skillMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  difficultyChip: {
-    borderWidth: 1,
-  },
-  durationText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 3,
-    marginBottom: 5,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#667eea',
-    borderRadius: 3,
-  },
-  topicsContainer: {
-    marginBottom: 16,
-  },
-  topicsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  topicsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  topicChip: {
-    marginBottom: 4,
-  },
-  skillsContainer: {
-    marginBottom: 8,
-  },
-  skillsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  skillsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  skillChip: {
-    marginBottom: 4,
   },
   bottomSpacing: {
     height: 20,
@@ -899,16 +594,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'white',
     fontWeight: '600',
-  },
-  // Missing styles for modules
-  skillMaterialIconsContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
   },
   // Missing styles for quick actions
   quickActionsContainer: {

@@ -30,12 +30,12 @@ export default function SettingsScreen() {
   const { user, isLoading } = useAppSelector((state) => state.auth);
   
   const [notifications, setNotifications] = useState({
-    email: user?.preferences.notifications.email || true,
-    push: user?.preferences.notifications.push || true,
-    weeklyDigest: user?.preferences.notifications.weeklyDigest || true,
+    email: user?.preferences?.notifications?.email || true,
+    push: user?.preferences?.notifications?.push || true,
+    weeklyDigest: user?.preferences?.notifications?.weeklyDigest || true,
   });
-  const [difficulty, setDifficulty] = useState(user?.preferences.difficulty || 'beginner');
-  const [language, setLanguage] = useState(user?.preferences.language.primary || 'en');
+  const [difficulty, setDifficulty] = useState(user?.preferences?.difficulty || 'beginner');
+  const [language, setLanguage] = useState(user?.preferences?.language?.primary || 'en');
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   const handleNotificationChange = (key: string, value: boolean) => {

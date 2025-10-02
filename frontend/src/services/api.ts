@@ -3,10 +3,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiResponse, LoginCredentials, RegisterData, Module, Quiz, User, Notification } from '../types';
 
 // API Configuration
-// Use IP address for mobile devices, localhost for web
+// For development, try different URLs for different environments
 const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.200.129:5000/api' 
+  ? 'http://192.168.1.18:5000/api'  // Your actual IP address for mobile
   : 'https://your-production-api.com/api';
+
+// Fallback URLs for development - including localhost for web and IP for mobile
+const FALLBACK_URLS = [
+  'http://192.168.1.18:5000/api',     // Your actual IP address (primary)
+  'http://localhost:5000/api',        // Local development server (web)
+  'http://127.0.0.1:5000/api',        // Alternative localhost
+  'http://172.19.109.137:5000/api',  // Previous IP address
+  'http://172.20.10.4:5000/api',      // Previous IP address
+  'http://10.0.2.2:5000/api'          // Android emulator
+];
 
 class ApiService {
   private api: AxiosInstance;
@@ -14,19 +24,64 @@ class ApiService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 30000, // Increased from 10s to 30s
+      timeout: 10000, // Reduced to 10s for faster fallback
       headers: {
         'Content-Type': 'application/json',
+      },
+      // Add these options for better network reliability
+      withCredentials: false,
+      validateStatus: function (status) {
+        return status >= 200 && status < 300; // default
       },
     });
 
     this.setupInterceptors();
+    this.testConnection();
+  }
+
+  private async testConnection() {
+    if (__DEV__) {
+      try {
+        // Test current connection
+        await this.api.get('/health');
+        console.log('✅ API connection successful');
+      } catch (error) {
+        console.log('❌ API connection failed, trying fallback URLs...');
+        await this.tryFallbackUrls();
+      }
+    }
+  }
+
+  private async tryFallbackUrls() {
+    for (const url of FALLBACK_URLS) {
+      try {
+        console.log(`🔍 Trying fallback URL: ${url}`);
+        const testApi = axios.create({
+          baseURL: url,
+          timeout: 3000, // Reduced to 3s for faster testing
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        await testApi.get('/health');
+        console.log(`✅ Fallback URL works: ${url}`);
+        
+        // Update the main API instance
+        this.api.defaults.baseURL = url;
+        break;
+      } catch (error) {
+        console.log(`❌ Fallback URL failed: ${url}`);
+      }
+    }
   }
 
   private setupInterceptors() {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       async (config) => {
+        console.log('🚀 API Request:', config.method?.toUpperCase(), config.url);
+        console.log('🚀 API Base URL:', config.baseURL);
+        console.log('🚀 API Full URL:', `${config.baseURL}${config.url}`);
+        
         const token = await AsyncStorage.getItem('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -34,23 +89,33 @@ class ApiService {
         return config;
       },
       (error) => {
+        console.error('❌ API Request Error:', error);
         return Promise.reject(error);
       }
     );
 
     // Response interceptor to handle token refresh and retries
     this.api.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log('✅ API Response:', response.status, response.config.url);
+        return response;
+      },
       async (error) => {
         const originalRequest = error.config;
 
         // Log API errors for debugging
-        console.log('API Error:', {
+        console.error('❌ API Error Details:', {
           url: originalRequest?.url,
           method: originalRequest?.method,
           status: error.response?.status,
           message: error.message,
-          data: error.response?.data
+          data: error.response?.data,
+          code: error.code,
+          config: {
+            baseURL: originalRequest?.baseURL,
+            url: originalRequest?.url,
+            fullURL: `${originalRequest?.baseURL}${originalRequest?.url}`
+          }
         });
 
         // Handle timeout and network errors with retry
@@ -58,8 +123,8 @@ class ApiService {
           originalRequest._retry = true;
           console.log('Retrying request due to timeout...');
           
-          // Wait 2 seconds before retry
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Wait 1 second before retry (reduced from 2s)
+          await new Promise(resolve => setTimeout(resolve, 1000));
           return this.api(originalRequest);
         }
 
@@ -152,12 +217,12 @@ class ApiService {
     featured?: boolean;
     weekly?: boolean;
   }): Promise<ApiResponse<{ modules: Module[]; pagination: any }>> {
-    const response = await this.api.get('/content', { params });
+    const response = await this.api.get('/modules', { params });
     return response.data;
   }
 
   async getModule(moduleId: string): Promise<ApiResponse<{ module: Module; userProgress?: any }>> {
-    const response = await this.api.get(`/content/${moduleId}`);
+    const response = await this.api.get(`/modules/${moduleId}`);
     return response.data;
   }
 
@@ -328,6 +393,23 @@ class ApiService {
 
   async createModule(moduleData: Partial<Module>): Promise<ApiResponse<{ module: Module }>> {
     const response = await this.api.post('/admin/modules', moduleData);
+    return response.data;
+  }
+
+  async createAdultModule(moduleData: Partial<Module>): Promise<ApiResponse<{ module: Module }>> {
+    const response = await this.api.post('/adult-content', moduleData);
+    return response.data;
+  }
+
+  async getAdultModules(params?: {
+    moduleType?: string;
+    difficulty?: string;
+    limit?: number;
+    page?: number;
+    featured?: boolean;
+    weekly?: boolean;
+  }): Promise<ApiResponse<{ modules: Module[]; totalCount: number; page: number; limit: number; totalPages: number }>> {
+    const response = await this.api.get('/adult-content', { params });
     return response.data;
   }
 

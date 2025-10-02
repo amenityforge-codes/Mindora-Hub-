@@ -14,16 +14,12 @@ import {
   Card,
   Button,
   ActivityIndicator,
-  ProgressBar,
-  Avatar,
   Chip,
-  Surface,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchPracticeQuiz } from '../../store/slices/contentSlice';
@@ -43,21 +39,10 @@ export default function AIModeScreen() {
   const [selectedModuleType, setSelectedModuleType] = useState<ModuleType>('grammar');
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
   const [refreshing, setRefreshing] = useState(false);
-  const [aiTutorProgress, setAiTutorProgress] = useState(75);
-  const [currentStreak, setCurrentStreak] = useState(12);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
 
   const aiModules = [
-    { 
-      type: 'personalized-tutor', 
-      label: 'AI Personal Tutor', 
-      icon: 'psychology',
-      description: 'Personalized lessons based on your progress',
-      color: ['#667eea', '#764ba2'],
-      features: ['Progress Tracking', 'Weak Area Focus', 'Custom Lessons'],
-      gradient: ['#667eea', '#764ba2']
-    },
     { 
       type: 'speaking-feedback', 
       label: 'Speaking Coach', 
@@ -143,9 +128,6 @@ export default function AIModeScreen() {
     try {
       // Navigate to specific AI module
       switch (moduleType) {
-        case 'personalized-tutor':
-          navigation.navigate('AIPersonalTutor' as never);
-          break;
         case 'speaking-feedback':
           navigation.navigate('SpeakingCoachPractice' as never);
           break;
@@ -227,81 +209,6 @@ export default function AIModeScreen() {
     </LinearGradient>
   );
 
-  const renderAITutorProgress = () => (
-    <Animated.View 
-      style={[
-        styles.animatedCard,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
-      ]}
-    >
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={5}>
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={styles.tutorCardGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Card.Content style={styles.tutorCardContent}>
-            <View style={styles.tutorHeader}>
-              <Avatar.Icon 
-                size={64} 
-                icon="psychology" 
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-              />
-              <View style={styles.tutorInfo}>
-                <Text variant="titleLarge" style={{ fontWeight: 'bold', color: 'white' }}>
-                  Your AI Tutor
-                </Text>
-                <Text variant="bodyMedium" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                  Personalized learning progress
-                </Text>
-              </View>
-              <View style={styles.streakBadge}>
-                <MaterialIcons name="local-fire-department" size={20} color="#f59e0b" />
-                <Text style={styles.streakText}>{currentStreak}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.progressSection}>
-              <View style={styles.progressInfo}>
-                <Text variant="bodyMedium" style={{ color: 'white' }}>
-                  Learning Progress
-                </Text>
-                <Text variant="bodyMedium" style={{ fontWeight: 'bold', color: 'white' }}>
-                  {aiTutorProgress}%
-                </Text>
-              </View>
-              <ProgressBar 
-                progress={aiTutorProgress / 100} 
-                color="white"
-                style={styles.progressBar}
-              />
-            </View>
-
-            <View style={styles.weakAreas}>
-              <Text variant="bodySmall" style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 8 }}>
-                Focus Areas:
-              </Text>
-              <View style={styles.weakAreaChips}>
-                <Chip mode="outlined" compact style={styles.weakAreaChip}>
-                  <Text style={{ color: 'white', fontSize: 12 }}>Pronunciation</Text>
-                </Chip>
-                <Chip mode="outlined" compact style={styles.weakAreaChip}>
-                  <Text style={{ color: 'white', fontSize: 12 }}>Grammar</Text>
-                </Chip>
-                <Chip mode="outlined" compact style={styles.weakAreaChip}>
-                  <Text style={{ color: 'white', fontSize: 12 }}>Vocabulary</Text>
-                </Chip>
-              </View>
-            </View>
-          </Card.Content>
-        </LinearGradient>
-      </Card>
-    </Animated.View>
-  );
 
   const renderAIModules = () => (
     <View style={styles.content}>
@@ -430,108 +337,7 @@ export default function AIModeScreen() {
   );
 
 
-  const renderDailyChallenge = () => (
-    <Animated.View 
-      style={[
-        styles.animatedCard,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
-      ]}
-    >
-      <View style={styles.dailyChallengeContainer}>
-        <LinearGradient
-          colors={['#ff6b6b', '#ee5a52', '#ff8a80']}
-          style={styles.dailyChallengeCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.dailyChallengeContent}>
-            <View style={styles.dailyChallengeLeft}>
-              <View style={styles.challengeIconContainer}>
-                <MaterialIcons name="auto-awesome" size={32} color="white" />
-              </View>
-              <View style={styles.dailyChallengeText}>
-                <Text style={styles.dailyChallengeTitle}>AI Daily Challenge</Text>
-                <Text style={styles.dailyChallengeSubtitle}>Complete today's AI-powered task</Text>
-              </View>
-            </View>
-            <TouchableOpacity 
-              style={styles.dailyChallengeButton}
-              onPress={() => handleStartAIModule('personalized-tutor')}
-            >
-              <MaterialIcons name="play-arrow" size={20} color="#ff6b6b" />
-              <Text style={styles.dailyChallengeButtonText}>Start</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </View>
-    </Animated.View>
-  );
 
-  const renderStats = () => {
-    const stats = user?.progress || {
-      currentStreak: 0,
-      totalTimeSpent: 0,
-      points: 0
-    };
-    
-    return (
-      <Animated.View 
-        style={[
-          styles.animatedCard,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }
-        ]}
-      >
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={4}>
-          <Card.Content>
-            <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 16, color: theme.colors.onSurface }}>
-              AI Learning Stats
-            </Text>
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: '#10b981' }]}>
-                  <MaterialIcons name="trending-up" size={24} color="white" />
-                </View>
-                <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#10b981' }}>
-                  {stats.currentStreak || 0}
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Day Streak
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: '#6366f1' }]}>
-                  <MaterialIcons name="psychology" size={24} color="white" />
-                </View>
-                <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#6366f1' }}>
-                  {Math.floor((stats.totalTimeSpent || 0) / 60)}
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  AI Sessions
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: '#f59e0b' }]}>
-                  <MaterialIcons name="star" size={24} color="white" />
-                </View>
-                <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#f59e0b' }}>
-                  {stats.points || 0}
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  AI Points
-                </Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-      </Animated.View>
-    );
-  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -545,9 +351,6 @@ export default function AIModeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {renderDailyChallenge()}
-        {renderAITutorProgress()}
-        {renderStats()}
         {renderAIModules()}
         
         {isLoading && (
@@ -628,122 +431,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
-  dailyChallengeContainer: {
-    marginBottom: 16,
-  },
-  dailyChallengeCard: {
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  dailyChallengeContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dailyChallengeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  challengeIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  dailyChallengeText: {
-    flex: 1,
-  },
-  dailyChallengeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
-  },
-  dailyChallengeSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  dailyChallengeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  dailyChallengeButtonText: {
-    color: '#ff6b6b',
-    fontWeight: 'bold',
-    marginLeft: 6,
-    fontSize: 14,
-  },
-  tutorCardGradient: {
-    borderRadius: 20,
-  },
-  tutorCardContent: {
-    padding: 20,
-  },
-  tutorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  tutorInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  streakText: {
-    color: '#f59e0b',
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  progressSection: {
-    marginBottom: 16,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  weakAreas: {
-    marginTop: 8,
-  },
-  weakAreaChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  weakAreaChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
   modulesHeader: {
     marginBottom: 20,
   },
@@ -807,21 +494,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 10,
     fontWeight: '500',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   loadingContainer: {
     padding: 32,

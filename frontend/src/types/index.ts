@@ -338,13 +338,22 @@ export type RootStackParamList = {
   Progress: undefined;
   AIMode: undefined;
   Profile: undefined;
-  ModuleDetail: { moduleId: string };
-  TopicContent: { 
-    moduleId: string; 
-    moduleTitle?: string; 
-    topicTitle: string; 
-    topicDescription: string; 
-  };
+    ModuleDetail: { moduleId: string };
+    LessonDetail: {
+      lessonId: string;
+      lessonTitle: string;
+      lessonDescription: string;
+      topics?: any[];
+    };
+    TopicContent: {
+      moduleId: string;
+      moduleTitle?: string;
+      topicTitle: string;
+      topicDescription: string;
+      topicVideos?: any[];
+      topicQuizzes?: any[];
+      isFromLesson?: boolean;
+    };
   VideoQuiz: {
     videoId: string;
     videoTitle: string;
@@ -375,14 +384,19 @@ export type RootStackParamList = {
   AdminContentManagement: { dashboardType?: string; ageRange?: string };
   KidsContentManagement: { dashboardType?: string; ageRange?: string };
   ContentUpload: undefined;
-  ModuleManagement: { dashboardType?: string; ageRange?: string };
   EnhancedLessonManagement: { dashboardType?: string; ageRange?: string };
-  QuizManagement: undefined;
+  AchievementManagement: undefined;
+  ExamManagement: undefined;
+  ExamStatistics: undefined;
   SpeakingCoachManagement: undefined;
   VideoQuizSequence: undefined;
   VideoUpload: undefined;
-  UserManagement: undefined;
   AdminModuleDetail: { moduleId: string };
+  TopicDetail: { 
+    topicId: string; 
+    topicTitle: string; 
+    moduleId: string; 
+  };
   
   // Learning Screens
   SpeakingCoachPractice: undefined;
@@ -393,6 +407,18 @@ export type RootStackParamList = {
   AIPersonalTutor: undefined;
   CommunicationEnglish: undefined;
   SoftSkills: undefined;
+  Achievements: undefined;
+  ExamTaking: { examId: string; attemptId: string };
+  ExamResults: { 
+    examId: string; 
+    attemptId: string; 
+    score: number; 
+    percentage: number; 
+    isPassed: boolean; 
+    certificate?: any 
+  };
+  Certificates: undefined;
+  Certifications: undefined;
 };
 
 export type AuthStackParamList = {

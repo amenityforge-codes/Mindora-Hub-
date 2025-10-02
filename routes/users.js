@@ -172,6 +172,54 @@ router.get('/stats', authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/users/update-points
+// @desc    Update user points (called after quiz completion)
+// @access  Private
+router.post('/update-points', authenticate, async (req, res) => {
+  try {
+    const { points } = req.body;
+    
+    if (!points || typeof points !== 'number' || points < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid points value is required'
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update user points
+    user.progress.points += points;
+    user.progress.totalXP += points;
+    user.progress.lastActivity = new Date();
+    
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `Added ${points} points to user`,
+      data: {
+        newPoints: user.progress.points,
+        totalXP: user.progress.totalXP
+      }
+    });
+
+  } catch (error) {
+    console.error('Update points error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating points',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
 

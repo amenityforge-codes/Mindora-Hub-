@@ -45,8 +45,11 @@ const quizSchema = new mongoose.Schema({
   },
   moduleId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Module',
-    required: [true, 'Module ID is required']
+    ref: 'Module'
+  },
+  topicId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic'
   },
   questions: [questionSchema],
   timeLimit: {
@@ -282,21 +285,29 @@ quizSchema.pre('save', function(next) {
   next();
 });
 
-// Pre-save middleware to validate module exists
-quizSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('moduleId')) {
-    const Module = mongoose.model('Module');
-    const module = await Module.findById(this.moduleId);
-    if (!module) {
-      return next(new Error('Module not found'));
-    }
-  }
-  next();
-});
+// Pre-save middleware to validate module exists - DISABLED for lessons
+// quizSchema.pre('save', async function(next) {
+//   if (this.isNew || this.isModified('moduleId')) {
+//     try {
+//       const Module = require('./Module');
+//       const module = await Module.findById(this.moduleId);
+//       if (!module) {
+//         return next(new Error('Module not found'));
+//       }
+//     } catch (error) {
+//       // Skip validation if Module model is not available
+//       console.log('Skipping module validation:', error.message);
+//     }
+//   }
+//   next();
+// });
 
 // Pre-save middleware to validate questions array
 quizSchema.pre('save', function(next) {
-  if (this.questions.length === 0) {
+  console.log('Quiz pre-save validation - questions length:', this.questions?.length || 0);
+  console.log('Quiz pre-save validation - questions:', this.questions);
+  
+  if (!this.questions || this.questions.length === 0) {
     return next(new Error('Quiz must have at least one question'));
   }
   

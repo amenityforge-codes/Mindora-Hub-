@@ -4,7 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const mongoose = require('mongoose');
 
 // Import models to ensure they are registered
-const QuizAttempt = require('../backend/models/QuizAttempt');
+const QuizAttempt = require('../models/QuizAttempt');
 const User = require('../models/User');
 
 // GET /api/leaderboard - Get leaderboard with user rankings

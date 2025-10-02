@@ -137,7 +137,7 @@ const VideoQuizScreen: React.FC<VideoQuizScreenProps> = ({ route }) => {
             source={{ 
               uri: videoUrl.startsWith('http') 
                 ? videoUrl 
-                : `http://192.168.200.129:5000${videoUrl}`
+                : `http://192.168.1.18:5000${videoUrl}`
             }}
             useNativeControls
             resizeMode={ResizeMode.CONTAIN}

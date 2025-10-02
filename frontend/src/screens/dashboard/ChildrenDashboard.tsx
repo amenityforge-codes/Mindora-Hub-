@@ -10,12 +10,15 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, MaterialCommunityIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
-import { fetchModules, fetchFeaturedModules, fetchRecommendedModules } from '../../store/slices/contentSlice';
+// Removed unused imports - using lessons directly from lesson management system
 import { fetchProgress } from '../../store/slices/progressSlice';
 import { useTheme } from '../../contexts/ThemeContext';
+import AchievementDisplay from '../../components/children/AchievementDisplay';
+import apiService from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,6 +30,14 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === 'admin';
+  
+  // Achievements state
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [achievements, setAchievements] = useState([]);
+  const [userAchievements, setUserAchievements] = useState([]);
+  
+  // Lessons state - direct from lesson management system
+  const [lessons, setLessons] = useState([]);
   
   const handleModuleManagement = () => {
     navigation.navigate('ModuleManagement', {
@@ -49,12 +60,68 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
     const fetchData = async () => {
       try {
         console.log('=== CHILDREN DASHBOARD: Fetching data ===');
+        
+        // Fetch modules from the modules API instead of lessons
+        try {
+          console.log('=== CHILDREN DASHBOARD: Fetching modules ===');
+          const modulesResponse = await fetch('http://192.168.1.18:5000/api/children-modules', {
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          const modulesData = await modulesResponse.json();
+          console.log('=== CHILDREN DASHBOARD: Modules response:', modulesData);
+          
+          if (modulesData.success) {
+            console.log('=== CHILDREN DASHBOARD: Found modules:', modulesData.data.modules.length);
+            console.log('=== CHILDREN DASHBOARD: First module:', modulesData.data.modules[0]);
+            
+            // Filter for specific module types you want to display
+            const desiredModuleTypes = ['finance', 'ai', 'math', 'brainstorming', 'soft-skills'];
+            const filteredModules = modulesData.data.modules.filter((module: any) => 
+              desiredModuleTypes.includes(module.moduleType)
+            );
+            
+            console.log('=== CHILDREN DASHBOARD: Filtered modules:', filteredModules.length);
+            console.log('=== CHILDREN DASHBOARD: Filtered modules:', filteredModules);
+            
+            // Log each filtered module for debugging
+            filteredModules.forEach((module, index) => {
+              console.log(`=== CHILDREN DASHBOARD: Module ${index}:`, {
+                id: module._id,
+                title: module.title,
+                moduleType: module.moduleType,
+                topicsCount: module.topics?.length || 0
+              });
+            });
+            
+            // Store modules in local state
+            setLessons(filteredModules);
+            console.log('=== CHILDREN DASHBOARD: Modules stored in local state');
+            
+            // Update Redux store with modules data
+            dispatch({ type: 'content/fetchModules/fulfilled', payload: modulesData });
+          }
+        } catch (error) {
+          console.error('=== CHILDREN DASHBOARD: Modules API call failed:', error);
+        }
+        
+        // Call progress and achievements
         await Promise.allSettled([
-          dispatch(fetchModules({ ageRange: '6-15', limit: 10 })),
-          dispatch(fetchFeaturedModules(5)),
-          dispatch(fetchRecommendedModules(10)),
           dispatch(fetchProgress())
         ]);
+        
+        // Load achievements
+        try {
+          const achievementsData = await apiService.get('/achievements');
+          setAchievements(achievementsData);
+          
+          if (user?.id) {
+            const userAchievementsData = await apiService.get(`/achievements/user/${user.id}`);
+            setUserAchievements(userAchievementsData.map((ua: any) => ua.achievement));
+          }
+        } catch (error) {
+          console.log('Failed to load achievements:', error);
+        }
+        
         console.log('=== CHILDREN DASHBOARD: Data fetch completed ===');
       } catch (error) {
         console.log('Some API calls failed, continuing with available data:', error);
@@ -62,8 +129,70 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
     };
     
     fetchData();
+  }, []);
 
-    // Entrance animations
+  // Refresh data when screen comes into focus (e.g., after syncing)
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshData = async () => {
+        try {
+          console.log('=== CHILDREN DASHBOARD: Refreshing data on focus ===');
+          
+          // Fetch modules from the modules API instead of lessons
+          try {
+            console.log('=== CHILDREN DASHBOARD: Fetching modules (refresh) ===');
+            const modulesResponse = await fetch('http://192.168.1.18:5000/api/children-modules', {
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+            const modulesData = await modulesResponse.json();
+            console.log('=== CHILDREN DASHBOARD: Modules response (refresh):', modulesData);
+            
+            if (modulesData.success) {
+              console.log('=== CHILDREN DASHBOARD: Found modules (refresh):', modulesData.data.modules.length);
+              
+              // Filter for specific module types you want to display
+              const desiredModuleTypes = ['finance', 'ai', 'math', 'brainstorming', 'soft-skills'];
+              const filteredModules = modulesData.data.modules.filter((module: any) => 
+                desiredModuleTypes.includes(module.moduleType)
+              );
+              
+              console.log('=== CHILDREN DASHBOARD: Filtered modules (refresh):', filteredModules.length);
+              
+              // Log each filtered module for debugging
+              filteredModules.forEach((module, index) => {
+                console.log(`=== CHILDREN DASHBOARD: Module ${index} (refresh):`, {
+                  id: module._id,
+                  title: module.title,
+                  moduleType: module.moduleType,
+                  topicsCount: module.topics?.length || 0
+                });
+              });
+              
+              // Store modules in local state
+              setLessons(filteredModules);
+              
+              // Update Redux store with fresh modules data
+              dispatch({ type: 'content/fetchModules/fulfilled', payload: modulesData });
+            }
+          } catch (error) {
+            console.error('=== CHILDREN DASHBOARD: Modules API call failed (refresh):', error);
+          }
+          
+          // Call progress
+          await Promise.allSettled([
+            dispatch(fetchProgress())
+          ]);
+        } catch (error) {
+          console.error('Error refreshing dashboard data:', error);
+        }
+      };
+
+      refreshData();
+    }, [])
+  );
+
+  // Entrance animations
+  useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -215,18 +344,18 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
         onPress: () => navigation.navigate('AIMode')
       },
       { 
+        title: 'Achievements', 
+        subtitle: 'View your badges', 
+        icon: 'emoji-events',
+        colors: ['#FFD700', '#FFA500'],
+        onPress: () => navigation.navigate('Achievements')
+      },
+      { 
         title: 'View Progress', 
         subtitle: 'Track your growth', 
         icon: 'trending-up',
         colors: ['#2ed573', '#26d065'],
         onPress: () => navigation.navigate('Progress')
-      },
-      { 
-        title: 'Daily Challenge', 
-        subtitle: 'Complete today\'s task', 
-        icon: 'emoji-events',
-        colors: ['#ff6b6b', '#ee5a52'],
-        onPress: () => navigation.navigate('AIMode')
       },
       { 
         title: 'Live Translation', 
@@ -236,32 +365,11 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
         onPress: () => navigation.navigate('LiveTranslation')
       },
       { 
-        title: 'Grammar Check', 
-        subtitle: 'Check your grammar', 
-        icon: 'spellcheck',
-        colors: ['#ff9a9e', '#fecfef'],
-        onPress: () => navigation.navigate('GrammarCheck')
-      },
-      { 
-        title: 'Speech Practice', 
-        subtitle: 'Practice speaking', 
-        icon: 'mic',
-        colors: ['#a8edea', '#fed6e3'],
-        onPress: () => navigation.navigate('SpeechPractice')
-      },
-      { 
-        title: 'Sentence Builder', 
-        subtitle: 'Build sentences', 
-        icon: 'construction',
-        colors: ['#ffecd2', '#fcb69f'],
-        onPress: () => navigation.navigate('SentenceBuilderGame')
-      },
-      { 
-        title: 'Speaking Coach', 
-        subtitle: 'AI speaking coach', 
-        icon: 'record-voice-over',
-        colors: ['#d299c2', '#fef9d7'],
-        onPress: () => navigation.navigate('SpeakingCoachPractice')
+        title: 'Certifications', 
+        subtitle: 'Take exams and earn points', 
+        icon: 'school',
+        colors: ['#e74c3c', '#c0392b'],
+        onPress: () => navigation.navigate('Certifications')
       },
     ];
 
@@ -301,19 +409,26 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
   };
 
   const renderTodayLessons = () => {
-    console.log('=== CHILDREN DASHBOARD: Rendering lessons ===');
-    console.log('Modules available:', Array.isArray(modules) ? modules.length : 0);
-    console.log('Modules data:', modules);
+    console.log('=== CHILDREN DASHBOARD: Rendering lessons from lesson management ===');
+    console.log('Lessons available (Redux):', Array.isArray(modules) ? modules.length : 0);
+    console.log('Lessons available (Local):', Array.isArray(lessons) ? lessons.length : 0);
+    console.log('Lessons data (Local):', lessons);
+    console.log('Modules state from Redux:', modules);
+    console.log('First lesson (Local):', lessons && lessons.length > 0 ? lessons[0] : 'No lessons');
+    console.log('Lessons state type:', typeof lessons);
+    console.log('Lessons is array:', Array.isArray(lessons));
     
-    // Use real modules data, limit to 3 for display, with fallback
-    const lessons = Array.isArray(modules) && modules.length > 0 ? modules.slice(0, 3).map((module, index) => {
-      const progress = module.userProgress?.percentage || 0;
-      const difficulty = module.difficulty || 'Easy';
-      const colors = ['#4169e1', '#4ecdc4', '#2ed573'];
+    // FORCE USE LOCAL LESSONS STATE - ignore Redux modules completely
+    const lessonsToShow = Array.isArray(lessons) && lessons.length > 0 ? lessons : [];
+    
+    const lessonsList = lessonsToShow.length > 0 ? lessonsToShow.slice(0, 8).map((lesson, index) => {
+      const progress = lesson.userProgress?.percentage || 0;
+      const difficulty = lesson.difficulty || 'Easy';
+      const colors = ['#4169e1', '#4ecdc4', '#2ed573', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
       
       return {
-        id: module._id,
-        title: module.title,
+        id: lesson._id,
+        title: lesson.title,
         progress: Math.round(progress),
         difficulty: difficulty,
         color: colors[index % colors.length]
@@ -324,6 +439,10 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
       { id: '2', title: 'Vocabulary Builder', progress: 0, difficulty: 'Medium', color: '#4ecdc4' },
       { id: '3', title: 'Reading Comprehension', progress: 0, difficulty: 'Hard', color: '#2ed573' }
     ];
+    
+    console.log('=== CHILDREN DASHBOARD: lessonsToShow length:', lessonsToShow.length);
+    console.log('=== CHILDREN DASHBOARD: lessonsList length:', lessonsList.length);
+    console.log('=== CHILDREN DASHBOARD: lessonsList:', lessonsList);
 
     return (
       <Animated.View
@@ -336,14 +455,35 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
         ]}
       >
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Today's Lessons</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Today's Lessons (From Lesson Management) - {lessons.length} lessons loaded
+          </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Modules')}>
             <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See All</Text>
           </TouchableOpacity>
         </View>
         
+        {lessons.length === 0 && (
+          <View style={{ backgroundColor: '#ff6b6b', padding: 10, margin: 10, borderRadius: 5 }}>
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              DEBUG: No lessons loaded from lesson management system!
+            </Text>
+          </View>
+        )}
+        
+        {lessons.length > 0 && (
+          <View style={{ backgroundColor: '#4ecdc4', padding: 10, margin: 10, borderRadius: 5 }}>
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              DEBUG: {lessons.length} lessons loaded from lesson management system!
+            </Text>
+            <Text style={{ color: 'white', textAlign: 'center', fontSize: 12, marginTop: 5 }}>
+              Lessons: {lessons.slice(0, 3).map(l => l.title).join(', ')}...
+            </Text>
+          </View>
+        )}
+        
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.lessonsScroll}>
-          {lessons.map((lesson, index) => (
+          {lessonsList.map((lesson, index) => (
             <TouchableOpacity 
               key={lesson.id} 
               style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]}
@@ -485,13 +625,23 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
   };
 
   const renderLearningPath = () => {
-    const learningSteps = [
-      { step: 1, title: 'Alphabet & Sounds', completed: true, color: '#4ecdc4' },
-      { step: 2, title: 'Basic Words', completed: true, color: '#45b7d1' },
-      { step: 3, title: 'Simple Sentences', completed: false, color: '#ff6b6b' },
-      { step: 4, title: 'Reading Stories', completed: false, color: '#9b59b6' },
-      { step: 5, title: 'Writing Practice', completed: false, color: '#f39c12' }
-    ];
+    // FORCE USE LOCAL LESSONS STATE - ignore Redux modules completely
+    const lessonsToShow = Array.isArray(lessons) && lessons.length > 0 ? lessons : [];
+    
+    const learningSteps = lessonsToShow.length > 0 
+      ? lessonsToShow.slice(0, 5).map((lesson, index) => ({
+          step: index + 1,
+          title: lesson.title,
+          completed: lesson.userProgress?.percentage > 80 || false,
+          color: ['#4ecdc4', '#45b7d1', '#ff6b6b', '#9b59b6', '#f39c12'][index % 5]
+        }))
+      : [
+          { step: 1, title: 'Alphabet & Sounds', completed: true, color: '#4ecdc4' },
+          { step: 2, title: 'Basic Words', completed: true, color: '#45b7d1' },
+          { step: 3, title: 'Simple Sentences', completed: false, color: '#ff6b6b' },
+          { step: 4, title: 'Reading Stories', completed: false, color: '#9b59b6' },
+          { step: 5, title: 'Writing Practice', completed: false, color: '#f39c12' }
+        ];
 
     return (
       <Animated.View
@@ -503,7 +653,7 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
           },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Learning Path</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Learning Path (From Lesson Management)</Text>
         <View style={styles.learningPathContainer}>
           {learningSteps.map((step, index) => (
             <View key={step.step} style={styles.learningStep}>
@@ -544,34 +694,9 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
   };
 
   const renderAchievements = () => {
-    // Use real progress data for achievements or show placeholder
-    const completedCount = summary?.completedModules || 0;
-    const achievements = [
-      { 
-        title: 'First Steps', 
-        description: 'Completed your first lesson', 
-        icon: 'flag', 
-        earned: completedCount > 0 
-      },
-      { 
-        title: 'Grammar Master', 
-        description: 'Mastered 10 grammar rules', 
-        icon: 'school', 
-        earned: completedCount >= 10 
-      },
-      { 
-        title: 'Speed Reader', 
-        description: 'Read 5 stories in one day', 
-        icon: 'speed', 
-        earned: false // This would need specific tracking
-      },
-      { 
-        title: 'Perfect Score', 
-        description: 'Got 100% on a quiz', 
-        icon: 'star', 
-        earned: false // This would need specific tracking
-      },
-    ];
+    // Show first 3 achievements as preview
+    const previewAchievements = achievements && Array.isArray(achievements) ? achievements.slice(0, 3) : [];
+    const earnedCount = userAchievements && Array.isArray(userAchievements) ? userAchievements.length : 0;
 
     return (
       <Animated.View
@@ -583,44 +708,67 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
           },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Achievements</Text>
-        <View style={styles.achievementsGrid}>
-          {achievements.map((achievement, index) => (
-            <View 
-              key={index} 
-              style={[
-                styles.achievementCard,
-                { 
-                  backgroundColor: theme.colors.surface,
-                  opacity: achievement.earned ? 1 : 0.5 
-                }
-              ]}
-            >
-              <View style={[
-                styles.achievementIcon,
-                { backgroundColor: achievement.earned ? '#4ecdc4' : '#ddd' }
-              ]}>
-                <MaterialIcons 
-                  name={achievement.icon as any} 
-                  size={24} 
-                  color={achievement.earned ? 'white' : '#999'} 
-                />
-              </View>
-              <Text style={[
-                styles.achievementTitle,
-                { color: achievement.earned ? theme.colors.text : theme.colors.textSecondary }
-              ]}>
-                {achievement.title}
-              </Text>
-              <Text style={[
-                styles.achievementDescription,
-                { color: achievement.earned ? theme.colors.textSecondary : theme.colors.border }
-              ]}>
-                {achievement.description}
-              </Text>
-            </View>
-          ))}
+        <View style={styles.achievementsHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Achievements</Text>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => setShowAchievements(true)}
+          >
+            <Text style={[styles.viewAllText, { color: theme.colors.primary }]}>View All</Text>
+            <MaterialIcons name="arrow-forward" size={16} color={theme.colors.primary} />
+          </TouchableOpacity>
         </View>
+        
+        <View style={styles.achievementsGrid}>
+          {previewAchievements.map((achievement, index) => {
+            const isEarned = userAchievements.includes(achievement._id);
+            return (
+              <View 
+                key={achievement._id} 
+                style={[
+                  styles.achievementCard,
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    opacity: isEarned ? 1 : 0.5 
+                  }
+                ]}
+              >
+                <View style={[
+                  styles.achievementIcon,
+                  { backgroundColor: isEarned ? achievement.color : '#ddd' }
+                ]}>
+                  {achievement.symbol && achievement.symbol.startsWith('http') ? (
+                    <Image source={{ uri: achievement.symbol }} style={styles.achievementImage} />
+                  ) : (
+                    <Text style={styles.achievementSymbol}>{achievement.symbol}</Text>
+                  )}
+                </View>
+                <Text style={[
+                  styles.achievementTitle,
+                  { color: isEarned ? theme.colors.text : theme.colors.textSecondary }
+                ]}>
+                  {achievement.name}
+                </Text>
+                <Text style={[
+                  styles.achievementDescription,
+                  { color: isEarned ? theme.colors.textSecondary : theme.colors.border }
+                ]}>
+                  {achievement.description}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.achievementsButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => setShowAchievements(true)}
+        >
+          <MaterialIcons name="emoji-events" size={20} color="white" />
+          <Text style={styles.achievementsButtonText}>
+            View All Achievements ({earnedCount}/{achievements && Array.isArray(achievements) ? achievements.length : 0})
+          </Text>
+        </TouchableOpacity>
       </Animated.View>
     );
   };
@@ -702,11 +850,10 @@ const ChildrenDashboard: React.FC<ChildrenDashboardProps> = ({ navigation }) => 
         {renderHeader()}
         {renderQuickActions()}
         {renderTodayLessons()}
-        {renderFeaturedContent()}
         {renderLearningPath()}
-        {renderAchievements()}
         {renderFunActivities()}
       </ScrollView>
+      
     </SafeAreaView>
   );
 };
@@ -948,6 +1095,72 @@ const styles = StyleSheet.create({
   achievementDescription: {
     fontSize: 12,
     lineHeight: 16,
+  },
+  achievementsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  achievementsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  achievementsButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  achievementImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  achievementSymbol: {
+    fontSize: 20,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementsModal: {
+    width: '90%',
+    height: '80%',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
   },
   featuredScroll: {
     marginHorizontal: -20,

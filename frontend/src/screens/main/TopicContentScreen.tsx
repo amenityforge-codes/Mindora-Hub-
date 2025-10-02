@@ -36,12 +36,12 @@ type TopicContentScreenNavigationProp = StackNavigationProp<RootStackParamList, 
 const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
   const { theme, isDarkMode } = useTheme();
   const navigation = useNavigation<TopicContentScreenNavigationProp>();
-  const { moduleId, topicTitle, topicDescription } = route.params;
+  const { moduleId, topicTitle, topicDescription, isLesson, lessonData, topics, topicVideos, topicQuizzes, isFromLesson } = route.params;
   
 
-  const [videos, setVideos] = useState([]);
-  const [quizzes, setQuizzes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [videos, setVideos] = useState(topicVideos || []);
+  const [quizzes, setQuizzes] = useState(topicQuizzes || []);
+  const [loading, setLoading] = useState(!isFromLesson);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [videoProgress, setVideoProgress] = useState({});
@@ -50,7 +50,13 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    loadTopicContent();
+    // Only load if we don't already have the data
+    if (!isFromLesson || !topicVideos || !topicQuizzes) {
+      loadTopicContent();
+    } else {
+      // We have the data, just initialize progress
+      loadTopicContent();
+    }
   }, [moduleId, topicTitle]);
 
   // Check if topic is completed (all videos watched and quiz completed)
@@ -120,6 +126,33 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
   const loadTopicContent = async () => {
     setLoading(true);
     try {
+      // If we already have videos and quizzes from lesson (passed via navigation), use them
+      if (isFromLesson && topicVideos && topicQuizzes) {
+        console.log('=== USING LESSON DATA ===');
+        console.log('Videos:', topicVideos.length);
+        console.log('Quizzes:', topicQuizzes.length);
+        
+        setVideos(topicVideos);
+        setQuizzes(topicQuizzes);
+        
+        // Load video progress from AsyncStorage
+        const savedProgress = await AsyncStorage.getItem(`videoProgress_${moduleId}`);
+        const progress = savedProgress ? JSON.parse(savedProgress) : {};
+        
+        // Initialize progress for new videos
+        topicVideos.forEach((video: any) => {
+          if (progress[video._id] === undefined) {
+            progress[video._id] = false;
+          }
+        });
+        
+        setVideoProgress(progress);
+        await AsyncStorage.setItem(`videoProgress_${moduleId}`, JSON.stringify(progress));
+        await checkTopicCompletion();
+        
+        setLoading(false);
+        return;
+      }
       
       // Get auth token
       const token = await AsyncStorage.getItem('authToken');
@@ -130,8 +163,8 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
 
       // Fetch videos and quizzes for this specific topic
       const [videosResponse, quizzesResponse] = await Promise.all([
-        fetch(`http://192.168.200.129:5000/api/video/module/${moduleId}`, { headers }),
-        fetch(`http://192.168.200.129:5000/api/quiz/module/${moduleId}`, { headers })
+        fetch(`http://192.168.1.18:5000/api/video/module/${moduleId}`, { headers }),
+        fetch(`http://192.168.1.18:5000/api/quiz/module/${moduleId}`, { headers })
       ]);
 
       if (videosResponse.ok) {
@@ -282,22 +315,9 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
           style={styles.contentCard}
           onPress={() => {
             try {
-              // Navigate to VideoQuiz screen
-              const params = {
-                videoId: item._id,
-                videoTitle: item.title,
-                videoUrl: item.videoUrl 
-                  ? (item.videoUrl.startsWith('http') 
-                      ? item.videoUrl 
-                      : `http://localhost:5000${item.videoUrl}`)
-                  : 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-                quizId: associatedQuiz?._id,
-                quizTitle: associatedQuiz?.title,
-                moduleId: moduleId,
-                topicTitle: topicTitle
-              };
-              
-              navigation.navigate('VideoQuiz', params);
+              // For now, just play the video in the modal instead of navigating
+              setCurrentVideo(item);
+              setShowVideoPlayer(true);
             } catch (error) {
               console.error('Navigation error:', error);
               Alert.alert('Navigation Error', `Failed to navigate to video screen: ${error.message}`);
@@ -377,6 +397,7 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
     );
   };
 
+
   const renderQuizItem = ({ item }: { item: any }) => {
     if (!item) return null;
     
@@ -430,13 +451,14 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
           </View>
         ) : (
           <>
-            {Array.isArray(videos) && videos.length > 0 ? (
+            {/* Videos Section */}
+            {Array.isArray(videos) && videos.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  Learning Sequence ({Array.isArray(videos) ? videos.length : 0} lessons)
+                  📹 Videos ({videos.length})
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-                  Watch each video, then take the quiz to continue
+                  Watch these videos to learn the content
                 </Text>
                 <FlatList
                   data={videos}
@@ -446,14 +468,36 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
                   showsVerticalScrollIndicator={false}
                 />
               </View>
-            ) : (
+            )}
+
+            {/* Quizzes Section */}
+            {Array.isArray(quizzes) && quizzes.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  📝 Quizzes ({quizzes.length})
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+                  Test your knowledge with these quizzes
+                </Text>
+                <FlatList
+                  data={quizzes}
+                  renderItem={renderQuizItem}
+                  keyExtractor={(item) => item._id || item.id}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
+            )}
+
+            {/* Empty State */}
+            {(!Array.isArray(videos) || videos.length === 0) && (!Array.isArray(quizzes) || quizzes.length === 0) && (
               <View style={styles.emptyContainer}>
                 <MaterialIcons name="school" size={64} color={theme.colors.textSecondary} />
                 <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
                   No Content Available
                 </Text>
                 <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-                  No videos have been added for this topic yet.
+                  No videos or quizzes have been added for this topic yet.
                 </Text>
               </View>
             )}
@@ -483,71 +527,153 @@ const TopicContentScreen: React.FC<TopicContentScreenProps> = ({ route }) => {
           
           {currentVideo && (
             <View style={styles.videoPlayer}>
-              {currentVideo.videoUrl || currentVideo.thumbnail ? (
-                <Video
-                  ref={videoRef}
-                  style={styles.videoPlayer}
-                  source={{ 
-                    uri: currentVideo.videoUrl 
-                      ? (currentVideo.videoUrl.startsWith('http') 
-                          ? currentVideo.videoUrl 
-                          : `http://localhost:5000${currentVideo.videoUrl}`)
-                      : (currentVideo.thumbnail?.startsWith('http') 
-                          ? currentVideo.thumbnail 
-                          : `http://localhost:5000${currentVideo.thumbnail}`)
-                  }}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  shouldPlay={false}
-                  isLooping={false}
-                  onError={(error) => {
-                    console.error('Video playback error:', error);
-                    Alert.alert('Video Error', 'Failed to load video. Please check the video URL.');
-                  }}
-                  onLoad={(status) => {
-                    console.log('Video loaded:', status);
-                  }}
-                  onPlaybackStatusUpdate={async (status) => {
-                    if (status.isLoaded && status.didJustFinish) {
-                      // Mark video as watched when it finishes
-                      const newProgress = {
-                        ...videoProgress,
-                        [currentVideo._id]: true
-                      };
-                      setVideoProgress(newProgress);
-                      
-                      // Save to AsyncStorage
-                      await AsyncStorage.setItem(`videoProgress_${moduleId}`, JSON.stringify(newProgress));
-                      
-                      // Check if all videos are watched
-                      const allVideosWatched = videos.every(video => newProgress[video._id] === true);
-                      if (allVideosWatched && quizzes.length > 0) {
-                        // Check if quiz is also completed
-                        const quizKey = `quizCompletion_${moduleId}_${topicTitle}`;
-                        const quizStatus = await AsyncStorage.getItem(quizKey);
-                        if (quizStatus) {
-                          const quizCompleted = JSON.parse(quizStatus).completed;
-                          if (quizCompleted) {
-                            // Mark topic as completed
-                            await saveTopicCompletion(true);
+              {(() => {
+                // Check if video URL is a valid HTTP URL
+                const videoUrl = currentVideo.videoUrl;
+                
+                const isValidHttpUrl = videoUrl && (
+                  videoUrl.startsWith('http://') || 
+                  videoUrl.startsWith('https://')
+                );
+                
+                const isLocalFile = videoUrl && videoUrl.startsWith('file://');
+                
+                if (isValidHttpUrl) {
+                  // Valid HTTP/HTTPS URL - play the video
+                  return (
+                    <Video
+                      ref={videoRef}
+                      style={styles.videoPlayer}
+                      source={{ uri: videoUrl }}
+                      useNativeControls
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={false}
+                      isLooping={false}
+                      onError={(error) => {
+                        console.error('Video playback error:', error);
+                        Alert.alert('Video Error', 'Failed to load video. Please check the video URL.');
+                      }}
+                      onLoad={(status) => {
+                        console.log('Video loaded:', status);
+                      }}
+                      onPlaybackStatusUpdate={async (status) => {
+                        if (status.isLoaded && status.didJustFinish) {
+                          // Mark video as watched when it finishes
+                          const newProgress = {
+                            ...videoProgress,
+                            [currentVideo._id]: true
+                          };
+                          setVideoProgress(newProgress);
+                          
+                          // Save to AsyncStorage
+                          await AsyncStorage.setItem(`videoProgress_${moduleId}`, JSON.stringify(newProgress));
+                          
+                          // Check if all videos are watched
+                          const allVideosWatched = videos.every(video => newProgress[video._id] === true);
+                          if (allVideosWatched && quizzes.length > 0) {
+                            // Check if quiz is also completed
+                            const quizKey = `quizCompletion_${moduleId}_${topicTitle}`;
+                            const quizStatus = await AsyncStorage.getItem(quizKey);
+                            if (quizStatus) {
+                              const quizCompleted = JSON.parse(quizStatus).completed;
+                              if (quizCompleted) {
+                                // Mark topic as completed
+                                await saveTopicCompletion(true);
+                              }
+                            }
                           }
                         }
-                      }
-                    }
-                  }}
-                />
-              ) : (
-                <View style={styles.noVideoContainer}>
-                  <MaterialIcons name="error" size={64} color="white" />
-                  <Text style={styles.noVideoText}>No video URL available</Text>
-                  <Text style={styles.noVideoSubtext}>
-                    Video URL: {currentVideo.videoUrl || 'Not set'}
-                  </Text>
-                  <Text style={styles.noVideoSubtext}>
-                    Thumbnail URL: {currentVideo.thumbnail || 'Not set'}
-                  </Text>
-                </View>
-              )}
+                      }}
+                    />
+                  );
+                } else if (isLocalFile) {
+                  // Local file URL - try to stream through backend
+                  const streamUrl = `http://192.168.1.18:5000/api/video/stream/${currentVideo._id}`;
+                  
+                  return (
+                    <Video
+                      ref={videoRef}
+                      style={styles.videoPlayer}
+                      source={{ uri: streamUrl }}
+                      useNativeControls
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={false}
+                      isLooping={false}
+                      onError={(error) => {
+                        Alert.alert('Video Error', 'Failed to load video. The video file may not be available on the server.');
+                      }}
+                      onLoad={(status) => {
+                        // Video loaded successfully
+                      }}
+                      onPlaybackStatusUpdate={async (status) => {
+                        if (status.isLoaded && status.didJustFinish) {
+                          // Mark video as watched when it finishes
+                          const newProgress = {
+                            ...videoProgress,
+                            [currentVideo._id]: true
+                          };
+                          setVideoProgress(newProgress);
+                          
+                          // Save to AsyncStorage
+                          await AsyncStorage.setItem(`videoProgress_${moduleId}`, JSON.stringify(newProgress));
+                          
+                          // Check if all videos are watched
+                          const allVideosWatched = videos.every(video => newProgress[video._id] === true);
+                          if (allVideosWatched && quizzes.length > 0) {
+                            // Check if quiz is also completed
+                            const quizKey = `quizCompletion_${moduleId}_${topicTitle}`;
+                            const quizStatus = await AsyncStorage.getItem(quizKey);
+                            if (quizStatus) {
+                              const quizCompleted = JSON.parse(quizStatus).completed;
+                              if (quizCompleted) {
+                                // Mark topic as completed
+                                await saveTopicCompletion(true);
+                              }
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  );
+                } else {
+                  // Invalid or no URL - show message
+                  return (
+                    <View style={styles.noVideoContainer}>
+                      <MaterialIcons name="play-circle-outline" size={80} color="#4CAF50" />
+                      <Text style={styles.noVideoText}>📹 Video Content</Text>
+                      <Text style={styles.videoTitleText}>
+                        {currentVideo.title}
+                      </Text>
+                      <Text style={styles.noVideoSubtext}>
+                        Duration: {currentVideo.duration ? `${Math.floor(currentVideo.duration / 60)}:${(currentVideo.duration % 60).toString().padStart(2, '0')}` : 'Unknown'}
+                      </Text>
+                      <Text style={styles.noVideoSubtext}>
+                        📱 This video is available in the mobile app version.
+                      </Text>
+                      <Text style={styles.noVideoSubtext}>
+                        You can mark it as watched to continue your progress.
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.markWatchedButton}
+                        onPress={async () => {
+                          // Mark video as watched manually
+                          const newProgress = {
+                            ...videoProgress,
+                            [currentVideo._id]: true
+                          };
+                          setVideoProgress(newProgress);
+                          await AsyncStorage.setItem(`videoProgress_${moduleId}`, JSON.stringify(newProgress));
+                          setShowVideoPlayer(false);
+                          Alert.alert('Success', 'Video marked as watched!');
+                        }}
+                      >
+                        <MaterialIcons name="check-circle" size={20} color="white" />
+                        <Text style={styles.markWatchedButtonText}> Mark as Watched</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+              })()}
             </View>
           )}
           
@@ -822,6 +948,66 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  markWatchedButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  markWatchedButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  videoTitleText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 8,
+  },
+  noVideoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#1a1a1a',
+  },
+  noVideoText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  noVideoSubtext: {
+    color: '#cccccc',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  sampleVideoContainer: {
+    marginVertical: 20,
+    width: '100%',
+    maxWidth: 300,
+  },
+  sampleVideoText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  sampleVideo: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#000',
+    borderRadius: 8,
   },
 });
 

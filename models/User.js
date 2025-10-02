@@ -81,6 +81,8 @@ const userSchema = new mongoose.Schema({
     lastActivity: { type: Date, default: Date.now },
     level: { type: String, default: 'beginner' },
     points: { type: Number, default: 0 },
+    totalXP: { type: Number, default: 0 },
+    coins: { type: Number, default: 0 },
     badges: [{
       name: String,
       earnedAt: { type: Date, default: Date.now },

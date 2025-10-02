@@ -12,7 +12,9 @@ import {
   StatusBar,
   TextInput,
   ScrollView,
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, MaterialCommunityIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,6 +23,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchModules, setFilters, clearFilters } from '../../store/slices/contentSlice';
 import { Module, ModuleFilters } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import apiService from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,6 +38,10 @@ export default function ModulesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  
+  // Local state for lessons from lesson management system
+  const [lessons, setLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -65,16 +72,67 @@ export default function ModulesScreen() {
     ]).start();
   }, [filters]);
 
+  // Refresh data when screen comes into focus (e.g., after syncing)
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshData = async () => {
+        try {
+          console.log('=== MODULES SCREEN: Refreshing data on focus ===');
+          await loadModules();
+        } catch (error) {
+          console.error('Error refreshing modules data:', error);
+        }
+      };
+
+      refreshData();
+    }, [])
+  );
+
   const loadModules = async () => {
     try {
-      await dispatch(fetchModules({
-        ...filters,
-        ageRange: user?.ageRange,
-        limit: 20,
-        page: 1,
-      }));
+      console.log('=== MODULES SCREEN: Loading modules from modules API ===');
+      setLessonsLoading(true);
+      
+      // Load modules from the modules API instead of lessons
+      const lessonsResponse = await fetch('http://192.168.1.18:5000/api/modules?ageRange=6-15');
+      const lessonsData = await lessonsResponse.json();
+      
+      console.log('=== MODULES SCREEN: Modules response:', lessonsData);
+      
+      if (lessonsData.success) {
+        console.log('=== MODULES SCREEN: Found modules:', lessonsData.data.modules.length);
+        setLessons(lessonsData.data.modules);
+        
+        // Also update Redux for compatibility
+        const modulesData = {
+          modules: lessonsData.data.modules.map(module => ({
+            _id: module._id,
+            title: module.title,
+            description: module.description,
+            difficulty: module.difficulty,
+            ageRange: module.ageRange,
+            estimatedDuration: module.estimatedDuration,
+            topics: module.topics || [],
+            createdAt: module.createdAt,
+            status: module.status || 'published'
+          })),
+          pagination: {
+            currentPage: 1,
+            totalPages: 1,
+            totalCount: lessonsData.data.modules.length,
+            hasNextPage: false,
+            hasPrevPage: false
+          }
+        };
+        
+        // Update Redux store with lessons data
+        dispatch({ type: 'content/fetchModules/fulfilled', payload: modulesData });
+      }
+      
+      setLessonsLoading(false);
     } catch (error) {
-      console.error('Error loading modules:', error);
+      console.error('Error loading lessons from lesson management:', error);
+      setLessonsLoading(false);
     }
   };
 
@@ -127,7 +185,7 @@ export default function ModulesScreen() {
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>Lessons 📚</Text>
-              <Text style={styles.headerSubtitle}>Explore your learning journey</Text>
+              <Text style={styles.headerSubtitle}>From Lesson Management System</Text>
             </View>
             <TouchableOpacity 
               onPress={() => navigation.navigate('Profile')} 
@@ -294,14 +352,18 @@ export default function ModulesScreen() {
         <TouchableOpacity
           style={[styles.moduleCardContent, { backgroundColor: theme.colors.surface }]}
           onPress={() => {
-            const screenName = getModuleScreenName(item._id);
-            const realModuleId = getRealModuleId(item._id);
+            console.log('=== LESSONS SCREEN: Lesson clicked ===');
+            console.log('Lesson ID:', item._id);
+            console.log('Lesson Title:', item.title);
+            console.log('Lesson Topics:', item.topics?.length || 0);
             
-            if (screenName === 'ModuleDetail') {
-              navigation.navigate('ModuleDetail' as never, { moduleId: realModuleId } as never);
-            } else {
-              navigation.navigate(screenName as never, { moduleId: realModuleId } as never);
-            }
+            // Navigate to LessonDetailScreen to show all topics
+            navigation.navigate('LessonDetail' as never, { 
+              lessonId: item._id,
+              lessonTitle: item.title,
+              lessonDescription: item.description,
+              topics: item.topics || [],
+            } as never);
           }}
         >
           <LinearGradient
@@ -344,7 +406,48 @@ export default function ModulesScreen() {
                   {item.difficulty}
                 </Text>
               </View>
+              <View style={styles.metaItem}>
+                <MaterialIcons name="topic" size={16} color={theme.colors.textSecondary} />
+                <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+                  {item.topics?.length || 0} topics
+                </Text>
+              </View>
             </View>
+
+            {/* Topics and Videos Information */}
+            {item.topics && item.topics.length > 0 && (
+              <View style={styles.topicsContainer}>
+                <Text style={[styles.topicsTitle, { color: theme.colors.text }]}>
+                  📚 Topics & Content:
+                </Text>
+                {item.topics.slice(0, 3).map((topic, topicIndex) => (
+                  <View key={topic._id || topicIndex} style={styles.topicItem}>
+                    <Text style={[styles.topicTitle, { color: theme.colors.text }]}>
+                      • {topic.title}
+                    </Text>
+                    <View style={styles.topicMeta}>
+                      <View style={styles.topicMetaItem}>
+                        <MaterialIcons name="play-circle-outline" size={14} color={theme.colors.primary} />
+                        <Text style={[styles.topicMetaText, { color: theme.colors.textSecondary }]}>
+                          {topic.videos?.length || 0} videos
+                        </Text>
+                      </View>
+                      <View style={styles.topicMetaItem}>
+                        <MaterialIcons name="quiz" size={14} color={theme.colors.primary} />
+                        <Text style={[styles.topicMetaText, { color: theme.colors.textSecondary }]}>
+                          {topic.quizzes?.length || 0} quizzes
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+                {item.topics.length > 3 && (
+                  <Text style={[styles.moreTopics, { color: theme.colors.textSecondary }]}>
+                    +{item.topics.length - 3} more topics...
+                  </Text>
+                )}
+              </View>
+            )}
 
             {status !== 'not-started' && (
               <View style={styles.progressContainer}>
@@ -390,53 +493,27 @@ export default function ModulesScreen() {
     </View>
   );
 
-  // Organize lessons into categories
+  // Organize lessons into categories using real lessons from lesson management
   const lessonCategories = [
     {
       title: 'Foundation Skills',
       icon: 'school',
-      lessons: [
-        {
-          _id: '1',
-          title: 'Alphabet & Phonics',
-          description: 'Learn A–Z sounds, recognition, and basic blending. Activities: tracing, sound matching, phonics games.',
-          moduleType: 'phonics',
-          difficulty: 'Easy',
-          estimatedDuration: 20,
-          isFeatured: true,
-          userProgress: { percentage: 0, status: 'not-started' }
-        },
-        {
-          _id: '2',
-          title: 'Basic Vocabulary',
-          description: 'Words for objects, animals, people, and daily life. Flashcards, image–word associations.',
-          moduleType: 'vocabulary',
-          difficulty: 'Easy',
-          estimatedDuration: 15,
-          isFeatured: true,
-          userProgress: { percentage: 0, status: 'not-started' }
-        },
-        {
-          _id: '3',
-          title: 'Numbers & Counting',
-          description: 'Numbers 1–100, basic addition/subtraction terms. Songs, rhymes, visual exercises.',
-          moduleType: 'math',
-          difficulty: 'Easy',
-          estimatedDuration: 18,
-          isFeatured: false,
-          userProgress: { percentage: 0, status: 'not-started' }
-        },
-        {
-          _id: '4',
-          title: 'Colors & Shapes',
-          description: 'Color names, shape recognition, comparisons. Interactive drawing/coloring.',
-          moduleType: 'vocabulary',
-          difficulty: 'Easy',
-          estimatedDuration: 12,
-          isFeatured: false,
-          userProgress: { percentage: 0, status: 'not-started' }
-        }
-      ]
+      lessons: lessons.filter(lesson => 
+        lesson.difficulty === 'Beginner' && (
+          lesson.title.toLowerCase().includes('alphabet') ||
+          lesson.title.toLowerCase().includes('phonics') ||
+          lesson.title.toLowerCase().includes('vocabulary') ||
+          lesson.title.toLowerCase().includes('numbers') ||
+          lesson.title.toLowerCase().includes('counting') ||
+          lesson.title.toLowerCase().includes('colors') ||
+          lesson.title.toLowerCase().includes('shapes')
+        )
+      ).map(lesson => ({
+        ...lesson,
+        moduleType: 'phonics',
+        isFeatured: true,
+        userProgress: { percentage: 0, status: 'not-started' }
+      }))
     },
     {
       title: 'Daily Life Topics',
@@ -648,6 +725,34 @@ export default function ModulesScreen() {
       {renderHeader()}
       {renderSearchAndFilters()}
       
+      {/* Debug banners for lesson management */}
+      {lessons.length === 0 && !lessonsLoading && (
+        <View style={{ backgroundColor: '#ff6b6b', padding: 10, margin: 10, borderRadius: 5 }}>
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+            DEBUG: No lessons loaded from lesson management system!
+          </Text>
+        </View>
+      )}
+      
+      {lessons.length > 0 && (
+        <View style={{ backgroundColor: '#4ecdc4', padding: 10, margin: 10, borderRadius: 5 }}>
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+            DEBUG: {lessons.length} lessons loaded from lesson management system!
+          </Text>
+          <Text style={{ color: 'white', textAlign: 'center', fontSize: 12, marginTop: 5 }}>
+            Lessons: {lessons.slice(0, 3).map(l => l.title).join(', ')}...
+          </Text>
+        </View>
+      )}
+      
+      {lessonsLoading && (
+        <View style={{ backgroundColor: '#ffa500', padding: 10, margin: 10, borderRadius: 5 }}>
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+            DEBUG: Loading lessons from lesson management system...
+          </Text>
+        </View>
+      )}
+      
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.listContainer}
@@ -660,17 +765,22 @@ export default function ModulesScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {filteredCategories.length > 0 ? (
-          filteredCategories.map((category, categoryIndex) => (
-            <View key={category.title}>
-              {renderCategoryHeader(category.title, category.icon)}
-              {category.lessons.map((lesson, lessonIndex) => 
-                <View key={lesson._id}>
-                  {renderModuleItem({ item: lesson, index: categoryIndex * 10 + lessonIndex })}
-                </View>
-              )}
+        {lessons.length > 0 ? (
+          <View>
+            <View style={{ backgroundColor: '#4ecdc4', padding: 15, margin: 10, borderRadius: 10 }}>
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                📚 Lessons from Lesson Management System
+              </Text>
+              <Text style={{ color: 'white', textAlign: 'center', fontSize: 12, marginTop: 5 }}>
+                {lessons.length} lessons available
+              </Text>
             </View>
-          ))
+            {lessons.map((lesson, index) => (
+              <View key={lesson._id}>
+                {renderModuleItem({ item: lesson, index: index })}
+              </View>
+            ))}
+          </View>
         ) : (
           renderEmptyState()
         )}
@@ -898,6 +1008,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Topics and Videos styles
+  topicsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  topicsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  topicItem: {
+    marginBottom: 8,
+  },
+  topicTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  topicMeta: {
+    flexDirection: 'row',
+    marginLeft: 12,
+  },
+  topicMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  topicMetaText: {
+    marginLeft: 4,
+    fontSize: 11,
+  },
+  moreTopics: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });
 

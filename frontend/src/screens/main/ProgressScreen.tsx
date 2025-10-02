@@ -149,7 +149,7 @@ export default function ProgressScreen() {
       const token = await AsyncStorage.getItem('authToken');
       console.log('🧪 Auth token:', token ? 'Token exists' : 'No token');
       
-      const response = await fetch('http://localhost:5000/api/leaderboard', {
+      const response = await fetch('http://192.168.1.18:5000/api/leaderboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

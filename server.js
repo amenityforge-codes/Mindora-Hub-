@@ -18,6 +18,24 @@ const adminRoutes = require('./routes/admin');
 const aiRoutes = require('./routes/ai');
 const videoRoutes = require('./routes/video');
 const leaderboardRoutes = require('./routes/leaderboard');
+const lessonRoutes = require('./routes/lessons');
+const achievementRoutes = require('./routes/achievements');
+const examRoutes = require('./routes/exams');
+const questionRoutes = require('./routes/questions');
+const certificateRoutes = require('./routes/certificates');
+const moduleRoutes = require('./routes/modules');
+const categoryModuleRoutes = require('./routes/categoryModules');
+const adultModuleRoutes = require('./routes/adultModules');
+const childrenModuleRoutes = require('./routes/childrenModules');
+const adultAdminRoutes = require('./routes/adultAdmin');
+const adultAchievementRoutes = require('./routes/adultAchievements');
+const adultExamRoutes = require('./routes/adultExams');
+const adultLessonRoutes = require('./routes/adultLessons');
+const adultCertificateRoutes = require('./routes/adultCertificates');
+const adultUserRoutes = require('./routes/adultUsers');
+const adultContentRoutes = require('./routes/adultContent');
+const adultVideoRoutes = require('./routes/adultVideos');
+const adultAdminContentRoutes = require('./routes/adultAdminContent');
 
 const app = express();
 
@@ -25,20 +43,22 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting
+// Rate limiting - More permissive for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs (increased for development)
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - More permissive for development
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
-    : ['http://localhost:3000', 'http://localhost:8081', 'http://192.168.200.129:8081', 'exp://localhost:19000', 'exp://192.168.200.129:8081'],
-  credentials: true
+    : true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 }));
 
 // Body parsing middleware
@@ -78,6 +98,24 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/lessons', lessonRoutes);
+app.use('/api/achievements', achievementRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/modules', moduleRoutes);
+app.use('/api/category-modules', categoryModuleRoutes);
+app.use('/api/adult-modules', adultModuleRoutes);
+app.use('/api/children-modules', childrenModuleRoutes);
+app.use('/api/adult-admin', adultAdminRoutes);
+app.use('/api/adult-achievements', adultAchievementRoutes);
+app.use('/api/adult-exams', adultExamRoutes);
+app.use('/api/adult-lessons', adultLessonRoutes);
+app.use('/api/adult-certificates', adultCertificateRoutes);
+app.use('/api/adult-users', adultUserRoutes);
+app.use('/api/adult-content', adultContentRoutes);
+app.use('/api/adult-videos', adultVideoRoutes);
+app.use('/api/adult-admin-content', adultAdminContentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -107,10 +145,11 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🌐 Network access: http://172.20.10.4:${PORT}/api/health`);
 });
 
 module.exports = app;

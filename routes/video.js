@@ -390,4 +390,91 @@ router.get('/level/:level', async (req, res) => {
   }
 });
 
+// @route   GET /api/video/stream/:id
+// @desc    Stream video file
+// @access  Public
+router.get('/stream/:id', async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: 'Video not found'
+      });
+    }
+
+    console.log('=== VIDEO STREAMING DEBUG ===');
+    console.log('Video ID:', req.params.id);
+    console.log('Video Title:', video.title);
+    console.log('Original Video URL:', video.videoUrl);
+
+    // Try to find the actual video file in uploads directory
+    const uploadsDir = 'uploads/videos';
+    const videoFiles = fs.readdirSync(uploadsDir).filter(file => file.endsWith('.MP4'));
+    
+    console.log('Available video files:', videoFiles);
+    
+    // Try to match video by ID or use first available video
+    let videoFile = null;
+    
+    // First, try to find a video file that might match this video
+    if (videoFiles.length > 0) {
+      // Use the first available video file for now
+      videoFile = path.join(uploadsDir, videoFiles[0]);
+      console.log('Using video file:', videoFile);
+    }
+
+    if (videoFile && fs.existsSync(videoFile)) {
+      // Set appropriate headers for video streaming
+      const stat = fs.statSync(videoFile);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+
+      console.log('File size:', fileSize);
+      console.log('Range header:', range);
+
+      if (range) {
+        // Handle range requests for video seeking
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunksize = (end - start) + 1;
+        const file = fs.createReadStream(videoFile, { start, end });
+        const head = {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': 'video/mp4',
+        };
+        res.writeHead(206, head);
+        file.pipe(res);
+      } else {
+        // Stream entire file
+        const head = {
+          'Content-Length': fileSize,
+          'Content-Type': 'video/mp4',
+          'Accept-Ranges': 'bytes',
+        };
+        res.writeHead(200, head);
+        fs.createReadStream(videoFile).pipe(res);
+      }
+    } else {
+      console.log('No video file found, returning 404');
+      return res.status(404).json({
+        success: false,
+        message: 'Video file not found on server'
+      });
+    }
+
+  } catch (error) {
+    console.error('Stream video error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while streaming video',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
