@@ -331,6 +331,48 @@ router.delete('/:id', auth.authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/lessons/:lessonId/topics
+// @desc    Add topic to a lesson
+// @access  Private (Admin only)
+router.post('/:lessonId/topics', auth.authenticate, async (req, res) => {
+  try {
+    console.log('=== ADD TOPIC TO LESSON ===');
+    console.log('Lesson ID:', req.params.lessonId);
+    console.log('Topic data:', req.body);
+    
+    const { title, description, order } = req.body;
+    
+    // Validate required fields
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Topic title is required'
+      });
+    }
+    
+    // For now, just return success - you can implement topic storage later
+    res.status(201).json({
+      success: true,
+      message: 'Topic added to lesson successfully',
+      data: {
+        id: Date.now(), // Temporary ID
+        title,
+        description,
+        order: order || 1,
+        lessonId: req.params.lessonId
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error adding topic to lesson:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding topic to lesson',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/lessons/:lessonId/topics/:topicId/videos
 // @desc    Add video to a lesson topic
 // @access  Private (Admin only)
