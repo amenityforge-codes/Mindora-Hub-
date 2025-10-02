@@ -196,6 +196,7 @@ router.post('/save', auth.authenticate, async (req, res) => {
         const cleanedLessonData = {
           title: lessonData.title,
           description: lessonData.description,
+          category: lessonData.category || 'general', // Add required category field
           difficulty: lessonData.difficulty ? lessonData.difficulty.charAt(0).toUpperCase() + lessonData.difficulty.slice(1).toLowerCase() : 'Beginner',
           estimatedDuration: lessonData.estimatedDuration || lessonData.duration || 30,
           ageRange: '6-15',
@@ -293,16 +294,20 @@ router.delete('/:id', auth.authenticate, async (req, res) => {
     console.log('=== LESSON DELETION ===');
     console.log('Lesson ID:', req.params.id);
     
-    const lesson = await Lesson.findOne({
-      _id: req.params.id,
-      ageRange: '6-15', // Ensure it's a children lesson
-      createdBy: req.userId // Ensure user owns the lesson
-    });
+    const lesson = await Lesson.findById(req.params.id);
 
     if (!lesson) {
       return res.status(404).json({
         success: false,
-        message: 'Lesson not found or you do not have permission to delete it'
+        message: 'Lesson not found'
+      });
+    }
+
+    // Check if user owns the lesson (if createdBy exists) or if it's a children lesson
+    if (lesson.createdBy && lesson.createdBy.toString() !== req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to delete this lesson'
       });
     }
 
